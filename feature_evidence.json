@@ -1,0 +1,25 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-ensure-the-subscriptionprovider-wraps-the-entire-application-component-tree-in-app-tsx-or-at-the-highest-possible-level-above-all-routes-so-that-every-route-including-the-guest-flow-entered-via-continue-as-guest-has-access-to-the-subscription-context-any-component-calling-usesubscriptioncontext-must-never-encounter-a-missing-provider-eliminating-the-runtime-error-usesubscriptioncontext-must-be-used-within-subscriptionprovider",
+      "featureTitle": "Ensure the SubscriptionProvider wraps the entire application component tree in App.tsx (or at the highest possible level above all routes) so that every route — including the guest flow entered via 'Continue as Guest' — has access to the subscription context. Any component calling useSubscriptionContext must never encounter a missing provider, eliminating the runtime error 'useSubscriptionContext must be used within SubscriptionProvider'.",
+      "files": [
+        "frontend/src/App.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-37"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

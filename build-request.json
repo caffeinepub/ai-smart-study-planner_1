@@ -1,0 +1,40 @@
+{
+  "kind": "build_request",
+  "title": "Fix SubscriptionProvider missing from guest flow causing crash",
+  "projectName": "AI Smart Study Planner",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-37",
+      "text": "Ensure the SubscriptionProvider wraps the entire application component tree in App.tsx (or at the highest possible level above all routes) so that every route — including the guest flow entered via 'Continue as Guest' — has access to the subscription context. Any component calling useSubscriptionContext must never encounter a missing provider, eliminating the runtime error 'useSubscriptionContext must be used within SubscriptionProvider'.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "useSubscriptionContext must be used within SubscriptionProvider"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Clicking 'Continue as Guest' on the LoginPage no longer throws 'useSubscriptionContext must be used within SubscriptionProvider'.",
+        "All routes (Dashboard, FocusMode, ProgressTracking, ExamSetup, Settings) render without subscription context errors for both guest and authenticated users.",
+        "SubscriptionProvider is placed in App.tsx or equivalent root-level file, wrapping all route definitions.",
+        "Authenticated user flow continues to work correctly with no regression in subscription state."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not modify files listed under frontend.immutablePaths (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui).",
+    "Do not alter backend logic or data models."
+  ],
+  "nonGoals": [
+    "Implementing new subscription features or changing subscription business logic.",
+    "Redesigning any UI screens.",
+    "Adding new routes or pages."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix SubscriptionProvider missing from guest flow causing crash",
+  "requirements": [
+    {
+      "id": "REQ-37",
+      "summary": "Ensure SubscriptionProvider wraps the entire application component tree so that every route (including guest flow) has access to subscription context, eliminating 'useSubscriptionContext must be used within SubscriptionProvider' runtime errors",
+      "acceptanceCriteria": [
+        "Clicking 'Continue as Guest' on the LoginPage no longer throws 'useSubscriptionContext must be used within SubscriptionProvider'.",
+        "All routes (Dashboard, FocusMode, ProgressTracking, ExamSetup, Settings) render without subscription context errors for both guest and authenticated users.",
+        "SubscriptionProvider is placed in App.tsx or equivalent root-level file, wrapping all route definitions.",
+        "Authenticated user flow continues to work correctly with no regression in subscription state."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Wrap the entire RouterProvider component tree with SubscriptionProvider to ensure all routes (protected and public) have access to the subscription context. Import SubscriptionProvider from contexts/SubscriptionContext.tsx and place it at the highest level, above the RouterProvider, so that both authenticated and guest flows can access useSubscriptionContext without errors."
+        }
+      ]
+    }
+  ]
+}

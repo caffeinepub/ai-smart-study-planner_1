@@ -1,0 +1,14 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-26T18:47:26.701Z",
+  "summary": "The diff correctly implements REQ-37 by wrapping the RouterProvider with SubscriptionProvider in App.tsx, ensuring all routes including the guest flow have access to the subscription context. The implementation matches all acceptance criteria.",
+  "missing_requirements": [],
+  "hallucinated_features": [],
+  "confidence": 0.97,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "project_state.json"
+  ]
+}

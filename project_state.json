@@ -1,0 +1,418 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 17,
+  "summary": "Mobile app called 'AI Smart Study Planner' to help students generate and manage personalized study schedules using AI planning. Features include user setup (exam name, subjects, topics, exam date, daily hours), AI study plan generator, daily dashboard with task completion, Pomodoro focus timer, weekly progress tracking, reminders/notifications, dark/light mode UI, and premium/free monetization structure. UI is being redesigned with a modern minimal student-friendly aesthetic: indigo primary palette, soft gradients, card-based layout, rounded corners, smooth animations, and premium feel across light/dark modes.",
+  "architectural_notes": [
+    "Save user data locally on device",
+    "Smooth navigation between screens with card-based layout",
+    "Mobile app (student-facing, preview-ready)",
+    "Authentication is optional; guest mode supported for all local features; login required only for cloud sync",
+    "Freemium architecture must support future in-app subscription integration (monthly/yearly + free trial)",
+    "Primary color palette: indigo with soft gradients; calm academic aesthetic with rounded corners and soft shadows",
+    "Engagement data (streak, progress, exam countdown) stored locally for offline support"
+  ],
+  "known_issues": [
+    "'Continue as Guest' button throws 'useSubscriptionContext must be used within SubscriptionProvider' error — guest flow not wrapped in SubscriptionProvider"
+  ],
+  "isFixRequest": true,
+  "existing_features": [
+    {
+      "id": "feature-implement-a-user-setup-flow-where-students-can-enter-an-exam-name-add-subjects-and-their-topics-select-an-exam-date-and-define-daily-available-study-hours-persist-this-data-in-the-backend",
+      "title": "Implement a User Setup flow where students can enter an exam name, add subjects and their topics, select an exam date, and define daily available study hours. Persist this data in the backend.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-daily-dashboard-screen-that-displays-today-s-scheduled-study-tasks-fetched-from-the-generated-plan-each-task-must-have-a-completion-checkbox-display-an-overall-day-progress-percentage-calculated-from-completed-vs-total-tasks-for-the-day",
+      "title": "Implement a Daily Dashboard screen that displays today's scheduled study tasks fetched from the generated plan. Each task must have a completion checkbox. Display an overall day progress percentage calculated from completed vs total tasks for the day.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-focus-mode-screen-with-a-pomodoro-style-study-timer-the-timer-should-support-configurable-work-intervals-default-25-minutes-with-short-breaks-default-5-minutes-provide-start-pause-and-reset-controls",
+      "title": "Implement a Focus Mode screen with a Pomodoro-style study timer. The timer should support configurable work intervals (default 25 minutes) with short breaks (default 5 minutes). Provide Start, Pause, and Reset controls.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-progress-tracking-screen-displaying-a-weekly-bar-chart-showing-hours-or-tasks-completed-per-day-a-study-streak-counter-showing-consecutive-days-with-at-least-one-completed-task-and-a-summary-of-completed-vs-pending-tasks-across-the-full-plan",
+      "title": "Implement a Progress Tracking screen displaying: a weekly bar chart showing hours or tasks completed per day, a study streak counter showing consecutive days with at least one completed task, and a summary of completed vs pending tasks across the full plan.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-in-app-reminder-banners-notifications-a-daily-reminder-prompting-the-user-to-start-their-study-session-and-an-upcoming-exam-alert-that-appears-when-the-exam-date-is-within-3-days",
+      "title": "Implement in-app reminder banners/notifications: a daily reminder prompting the user to start their study session, and an upcoming exam alert that appears when the exam date is within 3 days.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-free-vs-premium-feature-gate-structure-free-users-can-access-user-setup-the-daily-dashboard-and-the-focus-timer-progress-tracking-weekly-chart-streak-and-the-ability-to-manage-multiple-exams-simultaneously-are-gated-as-premium-features-display-upgrade-prompts-when-free-users-attempt-to-access-premium-features",
+      "title": "Implement a Free vs Premium feature gate structure. Free users can access User Setup, the Daily Dashboard, and the Focus Timer. Progress Tracking (weekly chart, streak) and the ability to manage multiple exams simultaneously are gated as Premium features. Display upgrade prompts when free users attempt to access Premium features.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-dark-and-light-mode-toggling-the-selected-mode-must-be-persisted-across-sessions-all-screens-must-render-correctly-in-both-modes-using-the-app-s-design-system",
+      "title": "Implement dark and light mode toggling. The selected mode must be persisted across sessions. All screens must render correctly in both modes using the app's design system.",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-design-and-apply-a-clean-student-friendly-visual-theme-across-the-entire-app-use-a-card-based-layout-with-rounded-corners-and-clear-section-separation-typography-should-be-modern-and-readable-navigation-should-use-a-bottom-tab-bar-with-icons-for-dashboard-focus-progress-and-settings-the-color-palette-should-feel-energetic-yet-calm-avoiding-blue-purple-and-work-well-in-both-light-and-dark-modes",
+      "title": "Design and apply a clean, student-friendly visual theme across the entire app. Use a card-based layout with rounded corners and clear section separation. Typography should be modern and readable. Navigation should use a bottom tab bar with icons for: Dashboard, Focus, Progress, and Settings. The color palette should feel energetic yet calm — avoiding blue/purple — and work well in both light and dark modes.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-testing-mode-that-bypasses-the-premium-feature-gate-so-all-premium-features-progress-tracking-with-weekly-chart-and-streak-and-the-ability-to-manage-multiple-exams-simultaneously-are-accessible-without-requiring-a-premium-subscription-this-can-be-implemented-as-a-hardcoded-flag-or-a-toggle-in-the-settings-page-clearly-labeled-enable-premium-testing-the-premiumgate-component-should-respect-this-override-and-render-children-instead-of-the-upgradeprompt-when-the-override-is-active",
+      "title": "Add a testing mode that bypasses the premium feature gate so all premium features (Progress Tracking with weekly chart and streak, and the ability to manage multiple exams simultaneously) are accessible without requiring a premium subscription. This can be implemented as a hardcoded flag or a toggle in the Settings page clearly labeled 'Enable Premium (Testing)'. The PremiumGate component should respect this override and render children instead of the UpgradePrompt when the override is active.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-continue-as-guest-button-on-the-loginpage-screen-guest-users-must-be-able-to-access-all-local-features-dashboard-setup-focus-timer-reminders-without-authenticating-internet-identity-login-should-remain-available-but-optional-the-app-must-not-block-navigation-or-feature-access-solely-because-the-user-is-not-authenticated-unless-the-feature-explicitly-requires-cloud-sync",
+      "title": "Add a 'Continue as Guest' button on the LoginPage screen. Guest users must be able to access all local features (Dashboard, Setup, Focus Timer, Reminders) without authenticating. Internet Identity login should remain available but optional. The app must not block navigation or feature access solely because the user is not authenticated, unless the feature explicitly requires cloud sync.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-gate-cloud-backup-and-sync-exclusively-behind-authentication-when-a-guest-user-attempts-to-use-cloud-sync-backup-display-a-prompt-explaining-that-login-via-internet-identity-is-required-for-that-feature-all-other-features-must-remain-accessible-to-guest-users",
+      "title": "Gate cloud backup and sync exclusively behind authentication. When a guest user attempts to use cloud sync/backup, display a prompt explaining that login via Internet Identity is required for that feature. All other features must remain accessible to guest users.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-define-a-clear-free-vs-premium-feature-taxonomy-in-the-frontend-free-tier-includes-basic-study-planning-daily-dashboard-study-timer-and-basic-reminders-premium-tier-includes-ai-schedule-optimization-advanced-progress-analytics-unlimited-exams-and-subjects-cloud-backup-and-sync-and-advanced-focus-mode-update-the-existing-premiumgate-component-to-reflect-this-expanded-feature-set-ensuring-it-gates-each-premium-feature-individually-with-a-descriptive-feature-name",
+      "title": "Define a clear free vs. premium feature taxonomy in the frontend. Free tier includes: Basic study planning, Daily Dashboard, Study Timer, and Basic Reminders. Premium tier includes: AI schedule optimization, Advanced progress analytics, Unlimited exams and subjects, Cloud backup and sync, and Advanced focus mode. Update the existing PremiumGate component to reflect this expanded feature set, ensuring it gates each premium feature individually with a descriptive feature name.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-paywallscreen-component-with-benefit-focused-messaging-the-screen-must-not-appear-on-first-launch-it-must-be-triggered-automatically-after-the-user-has-created-a-study-plan-and-used-it-i-e-visited-the-dashboard-and-interacted-with-at-least-one-task-the-screen-must-present-monthly-and-yearly-subscription-options-and-offer-a-free-trial-the-component-must-be-architected-with-a-subscription-provider-interface-so-a-real-in-app-purchase-sdk-can-be-wired-in-later-without-restructuring-the-ui",
+      "title": "Implement a PaywallScreen component with benefit-focused messaging. The screen must not appear on first launch. It must be triggered automatically after the user has created a study plan and used it (i.e., visited the Dashboard and interacted with at least one task). The screen must present monthly and yearly subscription options and offer a free trial. The component must be architected with a subscription provider interface so a real in-app purchase SDK can be wired in later without restructuring the UI.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-profilesetupmodal-to-skip-display-for-guest-users-no-authentication-and-instead-silently-create-a-guest-profile-in-backend-state-using-the-new-guest-endpoint-authenticated-new-users-continue-to-see-the-modal-as-before",
+      "title": "Update the ProfileSetupModal to skip display for guest users (no authentication) and instead silently create a guest profile in backend state using the new guest endpoint. Authenticated new users continue to see the modal as before.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-wrap-the-application-s-component-tree-or-at-minimum-the-guest-accessible-route-subtree-in-the-subscriptionprovider-so-that-components-using-usesubscriptioncontext-including-those-reachable-via-the-continue-as-guest-path-never-throw-usesubscriptioncontext-must-be-used-within-subscriptionprovider-ensure-subscriptionprovider-is-placed-high-enough-in-the-tree-e-g-in-app-tsx-or-main-tsx-wrapping-that-all-routes-including-the-guest-flow-are-covered",
+      "title": "Wrap the application's component tree (or at minimum the guest-accessible route subtree) in the SubscriptionProvider so that components using useSubscriptionContext — including those reachable via the 'Continue as Guest' path — never throw 'useSubscriptionContext must be used within SubscriptionProvider'. Ensure SubscriptionProvider is placed high enough in the tree (e.g., in App.tsx or main.tsx wrapping) that all routes, including the guest flow, are covered.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-global-css-custom-properties-and-tailwind-configuration-to-establish-an-indigo-based-primary-color-palette-with-soft-gradient-tokens-replacing-the-current-warm-teal-orange-palette-define-semantic-color-tokens-for-backgrounds-soft-off-white-in-light-mode-deep-dark-indigo-in-dark-mode-surface-card-colors-primary-indigo-e-g-indigo-600-indigo-500-muted-text-border-and-shadow-ensure-all-tokens-work-correctly-in-both-light-and-dark-modes",
+      "title": "Update the global CSS custom properties and Tailwind configuration to establish an indigo-based primary color palette with soft gradient tokens, replacing the current warm teal/orange palette. Define semantic color tokens for backgrounds (soft off-white in light mode, deep dark-indigo in dark mode), surface/card colors, primary indigo (e.g. indigo-600 / indigo-500), muted text, border, and shadow. Ensure all tokens work correctly in both light and dark modes.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-loginpage-to-match-the-new-indigo-theme-full-screen-soft-gradient-background-indigo-to-soft-white-in-light-dark-indigo-in-dark-centered-card-with-rounded-2xl-corners-and-soft-shadow-large-app-logo-icon-area-at-top-headline-and-subtitle-in-large-readable-typography-a-primary-indigo-login-with-internet-identity-button-with-press-scale-animation-and-a-clearly-visible-continue-as-guest-secondary-button-add-a-subtle-animated-entrance-transition-for-the-card",
+      "title": "Redesign the LoginPage to match the new indigo theme: full-screen soft gradient background (indigo-to-soft-white in light, dark-indigo in dark), centered card with rounded-2xl corners and soft shadow, large app logo/icon area at top, headline and subtitle in large readable typography, a primary indigo 'Login with Internet Identity' button with press/scale animation, and a clearly visible 'Continue as Guest' secondary button. Add a subtle animated entrance transition for the card.",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-dashboard-page-with-1-a-personalized-greeting-header-good-morning-name-or-time-appropriate-variant-with-the-current-date-displayed-in-soft-muted-text-2-a-progress-overview-card-showing-an-animated-circular-or-horizontal-progress-bar-for-today-s-completion-percentage-3-a-today-s-study-tasks-card-listing-tasks-with-animated-checkboxes-and-completion-strike-through-4-a-prominent-primary-indigo-cta-button-start-studying-or-go-to-focus-mode-with-a-press-animation-5-consistent-card-spacing-rounded-2xl-card-corners-and-soft-shadows-throughout",
+      "title": "Redesign the Dashboard page with: (1) a personalized greeting header ('Good morning, [name]!' or time-appropriate variant) with the current date displayed in soft muted text; (2) a Progress Overview card showing an animated circular or horizontal progress bar for today's completion percentage; (3) a Today's Study Tasks card listing tasks with animated checkboxes and completion strike-through; (4) a prominent primary indigo CTA button ('Start Studying' or 'Go to Focus Mode') with a press animation; (5) consistent card spacing, rounded-2xl card corners, and soft shadows throughout.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-focusmode-page-with-a-large-centered-circular-svg-progress-ring-using-the-indigo-primary-color-with-a-smooth-stroke-dashoffset-animation-phase-label-focus-break-in-large-bold-typography-the-countdown-timer-in-an-oversized-readable-font-start-pause-reset-buttons-styled-as-pill-shaped-with-press-animations-and-session-count-indicator-apply-the-new-card-surface-background-and-consistent-spacing",
+      "title": "Redesign the FocusMode page with: a large centered circular SVG progress ring using the indigo primary color with a smooth stroke-dashoffset animation; phase label ('Focus' / 'Break') in large bold typography; the countdown timer in an oversized, readable font; Start/Pause/Reset buttons styled as pill-shaped with press animations; and session count indicator. Apply the new card/surface background and consistent spacing.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-progresstracking-page-with-a-streak-counter-displayed-in-a-prominent-highlight-card-with-an-animated-flame-or-star-icon-completed-vs-pending-tasks-in-a-two-column-stat-card-with-large-numbers-the-recharts-weekly-bar-chart-updated-to-use-indigo-bar-fill-and-soft-grid-lines-matching-the-new-palette-all-cards-using-rounded-2xl-corners-and-soft-shadows",
+      "title": "Redesign the ProgressTracking page with: a streak counter displayed in a prominent highlight card with an animated flame or star icon; completed vs pending tasks in a two-column stat card with large numbers; the Recharts weekly bar chart updated to use indigo bar fill and soft grid lines matching the new palette; all cards using rounded-2xl corners and soft shadows.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-examsetup-page-with-a-clean-multi-step-or-single-page-card-form-using-the-indigo-design-system-input-fields-with-rounded-xl-borders-and-soft-focus-rings-in-indigo-subject-topic-tag-chips-with-indigo-accent-a-clearly-styled-add-subject-action-and-a-prominent-indigo-submit-button-apply-consistent-spacing-and-card-surface-background",
+      "title": "Redesign the ExamSetup page with: a clean multi-step or single-page card form using the indigo design system; input fields with rounded-xl borders and soft focus rings in indigo; subject/topic tag chips with indigo accent; a clearly styled 'Add Subject' action; and a prominent indigo submit button. Apply consistent spacing and card surface background.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-settings-page-with-grouped-settings-sections-in-clearly-separated-cards-profile-appearance-premium-account-the-theme-toggle-displayed-as-a-stylized-pill-switch-using-indigo-active-state-premium-status-badge-in-indigo-and-consistent-card-based-layout-with-rounded-2xl-corners-and-soft-shadows-matching-the-new-design-system",
+      "title": "Redesign the Settings page with: grouped settings sections in clearly separated cards (Profile, Appearance, Premium, Account); the theme toggle displayed as a stylized pill/switch using indigo active state; premium status badge in indigo; and consistent card-based layout with rounded-2xl corners and soft shadows matching the new design system.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-bottomtabbar-component-to-match-the-new-indigo-design-system-elevated-card-style-tab-bar-with-soft-shadow-and-rounded-t-2xl-top-corners-active-tab-indicator-uses-indigo-fill-for-icon-and-label-inactive-tabs-use-muted-gray-add-a-subtle-scale-or-color-transition-animation-on-tab-press-ensure-the-bar-visually-floats-above-content-with-appropriate-background-and-blur-effect",
+      "title": "Redesign the BottomTabBar component to match the new indigo design system: elevated card-style tab bar with soft shadow and rounded-t-2xl top corners; active tab indicator uses indigo fill for icon and label; inactive tabs use muted gray; add a subtle scale or color transition animation on tab press. Ensure the bar visually floats above content with appropriate background and blur effect.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-layout-component-app-shell-header-replace-the-current-sticky-header-with-a-clean-minimal-top-bar-using-the-new-surface-card-background-with-a-soft-bottom-border-or-shadow-display-the-app-name-or-current-page-title-in-bold-readable-typography-position-the-themetoggle-button-on-the-right-ensure-consistent-padding-and-alignment-with-the-new-design-system",
+      "title": "Redesign the Layout component (app shell) header: replace the current sticky header with a clean minimal top bar using the new surface/card background with a soft bottom border or shadow; display the app name or current page title in bold readable typography; position the ThemeToggle button on the right. Ensure consistent padding and alignment with the new design system.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-paywallscreen-and-upgradeprompt-modals-to-match-the-new-indigo-design-system-use-an-indigo-gradient-header-section-feature-benefit-list-with-indigo-check-icons-monthly-yearly-plan-cards-with-a-highlighted-best-value-badge-in-indigo-and-a-primary-cta-button-with-press-animation-ensure-the-modal-backdrop-uses-a-soft-blurred-overlay",
+      "title": "Redesign the PaywallScreen and UpgradePrompt modals to match the new indigo design system: use an indigo gradient header section, feature benefit list with indigo check icons, monthly/yearly plan cards with a highlighted 'Best Value' badge in indigo, and a primary CTA button with press animation. Ensure the modal backdrop uses a soft blurred overlay.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-smooth-css-framer-style-page-transition-animations-between-routes-pages-should-fade-in-opacity-0-1-and-optionally-slide-up-slightly-translatey-8px-0-on-mount-apply-a-consistent-transition-duration-of-250ms-with-ease-out-easing-ensure-transitions-do-not-cause-layout-shifts-or-scroll-position-issues",
+      "title": "Add smooth CSS/Framer-style page transition animations between routes: pages should fade-in (opacity 0→1) and optionally slide-up slightly (translateY 8px→0) on mount. Apply a consistent transition duration of ~250ms with ease-out easing. Ensure transitions do not cause layout shifts or scroll position issues.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-daily-study-streak-tracker-stored-in-localstorage-the-streak-increments-when-at-least-one-task-is-completed-on-a-given-calendar-day-resets-to-zero-if-a-day-is-missed-and-persists-across-sessions-and-app-restarts-expose-the-current-streak-value-for-display-on-the-dashboard",
+      "title": "Implement a daily study streak tracker stored in localStorage. The streak increments when at least one task is completed on a given calendar day, resets to zero if a day is missed, and persists across sessions and app restarts. Expose the current streak value for display on the Dashboard.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-progress-percentage-calculation-derived-from-the-number-of-completed-tasks-vs-total-tasks-for-today-s-session-store-the-daily-completion-state-in-localstorage-so-it-is-available-offline-expose-the-percentage-value-for-use-in-the-dashboard-progress-card",
+      "title": "Implement a progress percentage calculation derived from the number of completed tasks vs total tasks for today's session. Store the daily completion state in localStorage so it is available offline. Expose the percentage value for use in the Dashboard progress card.",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-exam-countdown-display-that-calculates-the-number-of-days-remaining-until-the-active-exam-date-store-the-exam-date-in-localstorage-as-part-of-the-exam-data-so-the-countdown-is-available-offline-show-the-countdown-on-the-dashboard-in-a-clearly-labelled-card-or-badge",
+      "title": "Add an exam countdown display that calculates the number of days remaining until the active exam date. Store the exam date in localStorage as part of the exam data so the countdown is available offline. Show the countdown on the Dashboard in a clearly labelled card or badge.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-completion-celebration-animation-that-plays-when-the-user-completes-all-tasks-for-the-day-progress-reaches-100-the-animation-should-be-a-brief-non-blocking-visual-effect-e-g-confetti-burst-or-animated-checkmark-rendered-as-an-overlay-on-the-dashboard-dismiss-automatically-after-2-seconds",
+      "title": "Implement a completion celebration animation that plays when the user completes all tasks for the day (progress reaches 100%). The animation should be a brief, non-blocking visual effect (e.g., confetti burst or animated checkmark) rendered as an overlay on the Dashboard. Dismiss automatically after ~2 seconds.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-redesign-the-dashboard-page-frontend-src-pages-dashboard-tsx-as-the-home-screen-with-the-following-layout-and-visual-specifications-1-full-screen-soft-gradient-background-using-deep-indigo-to-soft-purple-e-g-from-indigo-700-via-indigo-500-to-purple-400-or-equivalent-css-gradient-high-contrast-for-text-readability-2-a-welcoming-greeting-header-section-showing-a-time-appropriate-greeting-good-morning-afternoon-evening-name-with-the-current-date-in-muted-text-below-3-a-streak-card-with-rounded-2xl-corners-and-soft-shadow-displaying-the-current-streak-count-from-req-29-a-flame-or-fire-icon-and-a-label-4-a-today-s-tasks-elevated-card-with-rounded-2xl-corners-soft-shadow-listing-today-s-study-tasks-with-animated-checkboxes-and-strike-through-on-completion-5-an-exam-countdown-badge-or-card-showing-days-remaining-from-req-31-6-a-progress-overview-section-with-an-animated-horizontal-progress-bar-reflecting-req-30-percentage-displayed-inside-a-card-7-a-prominent-pill-shaped-primary-cta-button-start-focus-session-in-indigo-with-a-subtle-press-scale-animation-on-click-that-navigates-to-focus-mode-8-smooth-fade-in-entrance-animation-opacity-0-1-translatey-8px-0-250ms-ease-out-applied-to-the-page-on-mount-9-cards-styled-as-white-or-slightly-translucent-surfaces-with-16-20px-border-radius-and-consistent-vertical-spacing-10-large-readable-typography-using-the-app-s-existing-font-scale",
+      "title": "Redesign the Dashboard page (frontend/src/pages/Dashboard.tsx) as the home screen with the following layout and visual specifications: (1) Full-screen soft gradient background using deep indigo to soft purple (e.g., from-indigo-700 via-indigo-500 to-purple-400 or equivalent CSS gradient), high contrast for text readability. (2) A welcoming greeting header section showing a time-appropriate greeting ('Good morning/afternoon/evening, [name]!') with the current date in muted text below. (3) A streak card with rounded-2xl corners and soft shadow displaying the current streak count from REQ-29, a flame or fire icon, and a label. (4) A today's tasks elevated card with rounded-2xl corners, soft shadow, listing today's study tasks with animated checkboxes and strike-through on completion. (5) An exam countdown badge or card showing days remaining from REQ-31. (6) A progress overview section with an animated horizontal progress bar reflecting REQ-30 percentage, displayed inside a card. (7) A prominent pill-shaped primary CTA button 'Start Focus Session' in indigo with a subtle press/scale animation on click that navigates to Focus Mode. (8) Smooth fade-in entrance animation (opacity 0→1, translateY 8px→0, ~250ms ease-out) applied to the page on mount. (9) Cards styled as white or slightly translucent surfaces with 16–20px border radius and consistent vertical spacing. (10) Large readable typography using the app's existing font scale.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-study-insights-section-within-the-progress-tracking-page-or-as-a-new-dedicated-subsection-that-analyzes-local-user-activity-data-completed-tasks-daily-completion-rates-focus-sessions-completed-and-streak-history-and-derives-3-5-short-personalized-insight-messages-e-g-you-study-best-on-tuesdays-you-ve-completed-80-of-tasks-this-week-great-momentum-try-to-maintain-your-3-day-streak-tomorrow-insights-must-be-computed-from-localstorage-data-already-tracked-by-uselocalstreak-uselocaldailyprogress-and-focusmode-session-counts-display-each-insight-in-a-card-with-an-icon-and-short-descriptive-text-wrap-the-section-in-a-premiumgate-with-feature-name-advanced-progress-analytics",
+      "title": "Create a Study Insights section within the Progress Tracking page (or as a new dedicated subsection) that analyzes local user activity data — completed tasks, daily completion rates, focus sessions completed, and streak history — and derives 3–5 short personalized insight messages (e.g., 'You study best on Tuesdays', 'You've completed 80% of tasks this week — great momentum!', 'Try to maintain your 3-day streak tomorrow'). Insights must be computed from localStorage data already tracked by useLocalStreak, useLocalDailyProgress, and FocusMode session counts. Display each insight in a card with an icon and short descriptive text. Wrap the section in a PremiumGate with feature name 'Advanced progress analytics'.",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-statistics-dashboard-section-within-the-progress-tracking-page-displaying-three-key-metrics-1-total-focus-time-sum-of-all-completed-pomodoro-work-intervals-in-hours-and-minutes-stored-and-read-from-localstorage-2-total-sessions-count-of-completed-focus-sessions-stored-and-read-from-localstorage-3-weekly-study-activity-a-recharts-bar-chart-showing-tasks-completed-or-focus-minutes-per-day-for-the-current-week-mon-sun-using-the-indigo-primary-fill-and-soft-grid-lines-consistent-with-the-existing-chart-on-the-page-display-the-three-metrics-in-a-two-or-three-column-stat-card-row-with-large-bold-numbers-and-descriptive-labels-persist-focus-session-count-and-cumulative-focus-minutes-to-localstorage-from-the-focusmode-page-whenever-a-work-interval-completes",
+      "title": "Create a Statistics Dashboard section within the Progress Tracking page displaying three key metrics: (1) Total Focus Time — sum of all completed Pomodoro work intervals in hours and minutes, stored and read from localStorage; (2) Total Sessions — count of completed focus sessions, stored and read from localStorage; (3) Weekly Study Activity — a Recharts bar chart showing tasks completed or focus minutes per day for the current week (Mon–Sun), using the indigo primary fill and soft grid lines consistent with the existing chart on the page. Display the three metrics in a two-or-three column stat card row with large bold numbers and descriptive labels. Persist focus session count and cumulative focus minutes to localStorage from the FocusMode page whenever a work interval completes.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-visual-theme-selector-to-the-settings-page-that-allows-users-to-choose-from-at-least-4-named-color-themes-for-the-app-interface-1-indigo-current-default-2-emerald-green-primary-3-rose-warm-red-pink-primary-and-4-amber-warm-orange-yellow-primary-each-theme-must-redefine-the-css-custom-property-values-for-primary-primary-foreground-and-any-gradient-tokens-on-the-root-element-so-that-all-existing-components-buttons-active-tab-indicators-progress-bars-chart-fills-focus-ring-badges-automatically-adopt-the-selected-color-without-layout-changes-persist-the-selected-theme-name-to-localstorage-and-apply-it-on-app-load-display-the-theme-choices-as-colored-circular-swatches-in-the-settings-page-appearance-card-with-a-checkmark-or-ring-indicator-on-the-active-selection",
+      "title": "Add a Visual Theme selector to the Settings page that allows users to choose from at least 4 named color themes for the app interface: (1) Indigo (current default), (2) Emerald (green primary), (3) Rose (warm red/pink primary), and (4) Amber (warm orange/yellow primary). Each theme must redefine the CSS custom property values for --primary, --primary-foreground, and any gradient tokens on the :root element so that all existing components (buttons, active tab indicators, progress bars, chart fills, focus ring, badges) automatically adopt the selected color without layout changes. Persist the selected theme name to localStorage and apply it on app load. Display the theme choices as colored circular swatches in the Settings page Appearance card, with a checkmark or ring indicator on the active selection.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-the-subscriptionprovider-wraps-the-entire-application-component-tree-in-app-tsx-or-at-the-highest-possible-level-above-all-routes-so-that-every-route-including-the-guest-flow-entered-via-continue-as-guest-has-access-to-the-subscription-context-any-component-calling-usesubscriptioncontext-must-never-encounter-a-missing-provider-eliminating-the-runtime-error-usesubscriptioncontext-must-be-used-within-subscriptionprovider",
+      "title": "Ensure the SubscriptionProvider wraps the entire application component tree in App.tsx (or at the highest possible level above all routes) so that every route — including the guest flow entered via 'Continue as Guest' — has access to the subscription context. Any component calling useSubscriptionContext must never encounter a missing provider, eliminating the runtime error 'useSubscriptionContext must be used within SubscriptionProvider'.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "User setup: enter exam name, subjects/topics, exam date, daily study hours",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "AI study plan generator: auto-create daily schedules with intelligent subject distribution and revision sessions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Daily dashboard with today's tasks, completion checkboxes, and progress percentage",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Focus mode with Pomodoro-style timer (start, pause, reset)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Progress tracking: weekly chart, study streak counter, completed vs pending tasks",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Reminders: daily study notifications and upcoming exam alerts",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "Clean student-friendly UI with dark/light mode and card-based layout",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "Implement an AI Study Plan Generator that automatically creates a day-by-day study schedule based on user setup data. The algorithm should distribute subjects intelligently across the available days, balance topic weight by day count remaining, and automatically insert revision sessions in the final days before the exam.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Enable all premium features for testing (bypass paywall/feature gate)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Freemium monetization: free tier (basic planning, dashboard, timer, reminders) vs premium tier (AI optimization, advanced analytics, unlimited exams, cloud backup, advanced focus mode). Paywall shown after first plan use (not on first launch), with monthly/yearly subscriptions and free trial. Benefit-focused paywall design. Architecture supports future in-app subscription integration.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Optional authentication: 'Continue as Guest' button on login screen. Local features work without login. Only cloud sync features require authentication.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Extend the backend actor to store a userTier field ('free' | 'premium') and a guestMode flag on the user profile. Add update endpoints for upgrading a user to premium and for creating a lightweight guest profile keyed by a device-generated anonymous ID. Premium status toggled via these endpoints must be reflected immediately in frontend queries.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Redesign the full app UI with modern minimal student-friendly design: indigo primary color, soft gradients, card-based layout, rounded corners, soft shadows, smooth screen transitions, button press animations, animated progress indicators, large readable typography, greeting header on dashboard, progress overview card, today's tasks card, prominent CTA button, and bottom navigation bar. Support light and dark modes with high readability.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Add engagement features: daily study streak tracking, progress percentage calculation, exam countdown display, completion celebration animation. Store data locally and ensure features work offline.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Redesign home screen with minimal/clean professional look: deep indigo-to-soft-purple gradient background, welcoming greeting header, streak card, today's tasks elevated card, prominent 'Start Focus Session' CTA button. Rounded corners (16-20px), soft card shadows, consistent spacing, large readable typography, modern icons, fade-in animation on load, subtle button press animation. Indigo/blue primary color, soft purple accent.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Study insights section: analyzes user activity and displays simple personalized insights based on completed tasks and study sessions",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Statistics dashboard showing total focus time, number of sessions, and weekly study activity using simple visual charts",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Customizable visual themes allowing users to select different color styles for the interface while maintaining consistent layout",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "AI Smart Study Planner",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
