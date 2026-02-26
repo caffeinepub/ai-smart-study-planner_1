@@ -27,7 +27,7 @@ export default function LoginPage() {
 
   const handleGuestMode = () => {
     enterGuestMode();
-    navigate({ to: '/' });
+    navigate({ to: '/dashboard' });
   };
 
   const features = [

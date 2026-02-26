@@ -1,10 +1,11 @@
 export type PremiumFeature =
-  | 'ai-schedule-optimization'
-  | 'advanced-analytics'
-  | 'advanced-progress-analytics'
-  | 'unlimited-exams'
-  | 'cloud-sync'
-  | 'advanced-focus-mode';
+  | 'smart_study_insights'
+  | 'advanced_statistics'
+  | 'unlimited_study_plans'
+  | 'cloud_backup'
+  | 'customizable_themes'
+  | 'ad_free_experience'
+  | 'advanced_focus_mode';
 
 export interface FeatureConfig {
   displayName: string;
@@ -12,44 +13,53 @@ export interface FeatureConfig {
   icon: string;
 }
 
-export const FEATURE_CONFIG: Record<PremiumFeature, FeatureConfig> = {
-  'ai-schedule-optimization': {
-    displayName: 'AI Schedule Optimization',
-    description: 'Let AI analyze your learning patterns and automatically build the perfect study schedule for you.',
-    icon: '🤖',
+export const PREMIUM_FEATURES: Record<PremiumFeature, FeatureConfig> = {
+  smart_study_insights: {
+    displayName: 'Smart Study Insights',
+    description: 'AI-powered recommendations based on your study patterns to maximize retention.',
+    icon: '🧠',
   },
-  'advanced-analytics': {
-    displayName: 'Advanced Progress Analytics',
-    description: 'Deep insights into your study habits, performance trends, and personalized improvement tips.',
+  advanced_statistics: {
+    displayName: 'Advanced Statistics',
+    description: 'Deep analytics with charts, trends, and subject-level performance breakdowns.',
     icon: '📊',
   },
-  'advanced-progress-analytics': {
-    displayName: 'Advanced Progress Analytics',
-    description: 'Get personalized insights from your study activity to improve your learning outcomes.',
-    icon: '📈',
-  },
-  'unlimited-exams': {
-    displayName: 'Unlimited Exams & Subjects',
+  unlimited_study_plans: {
+    displayName: 'Unlimited Study Plans',
     description: 'Manage all your exams simultaneously with no limits on subjects or topics.',
     icon: '📚',
   },
-  'cloud-sync': {
-    displayName: 'Cloud Backup & Sync',
+  cloud_backup: {
+    displayName: 'Cloud Backup',
     description: 'Keep your study plans safe and synced across all your devices automatically.',
     icon: '☁️',
   },
-  'advanced-focus-mode': {
+  customizable_themes: {
+    displayName: 'Customizable Themes',
+    description: 'Personalize your app with beautiful color themes that match your style.',
+    icon: '🎨',
+  },
+  ad_free_experience: {
+    displayName: 'Ad-Free Experience',
+    description: 'Enjoy a clean, distraction-free study environment with no ads.',
+    icon: '✨',
+  },
+  advanced_focus_mode: {
     displayName: 'Advanced Focus Mode',
-    description: 'Custom session lengths, smart break reminders, and distraction-blocking features.',
+    description: 'Custom intervals, ambient sounds, and session history for deeper focus.',
     icon: '🎯',
   },
 };
 
 export const ALL_PREMIUM_FEATURES: PremiumFeature[] = [
-  'ai-schedule-optimization',
-  'advanced-analytics',
-  'advanced-progress-analytics',
-  'unlimited-exams',
-  'cloud-sync',
-  'advanced-focus-mode',
+  'smart_study_insights',
+  'advanced_statistics',
+  'unlimited_study_plans',
+  'cloud_backup',
+  'customizable_themes',
+  'ad_free_experience',
+  'advanced_focus_mode',
 ];
+
+// Keep legacy alias for any code that still references FEATURE_CONFIG
+export const FEATURE_CONFIG = PREMIUM_FEATURES;

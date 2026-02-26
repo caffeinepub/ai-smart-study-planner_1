@@ -1,37 +1,54 @@
 {
   "kind": "build_request",
-  "title": "Fix SubscriptionProvider missing from guest flow causing crash",
-  "projectName": "AI Smart Study Planner",
+  "title": "Fix theme colour selection and revision day motivational quote",
   "priority": "high",
   "requirements": [
     {
-      "id": "REQ-37",
-      "text": "Ensure the SubscriptionProvider wraps the entire application component tree in App.tsx (or at the highest possible level above all routes) so that every route — including the guest flow entered via 'Continue as Guest' — has access to the subscription context. Any component calling useSubscriptionContext must never encounter a missing provider, eliminating the runtime error 'useSubscriptionContext must be used within SubscriptionProvider'.",
+      "id": "REQ-1",
+      "text": "Fix the theme colour selector in Settings so that selecting a theme preset actually applies the chosen colour theme to the app. The selected theme's CSS custom properties must be applied to the document root and persisted to localStorage so the theme survives page reloads. The active theme must be visually indicated in the ThemeSelectorSection grid.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-4"
         ],
         "quotes": [
-          "useSubscriptionContext must be used within SubscriptionProvider"
+          "Theme colour not changing when selected."
         ]
       },
       "acceptanceCriteria": [
-        "Clicking 'Continue as Guest' on the LoginPage no longer throws 'useSubscriptionContext must be used within SubscriptionProvider'.",
-        "All routes (Dashboard, FocusMode, ProgressTracking, ExamSetup, Settings) render without subscription context errors for both guest and authenticated users.",
-        "SubscriptionProvider is placed in App.tsx or equivalent root-level file, wrapping all route definitions.",
-        "Authenticated user flow continues to work correctly with no regression in subscription state."
+        "Selecting a theme preset in Settings immediately changes the app's colour scheme.",
+        "The selected theme is persisted to localStorage and restored on page reload.",
+        "The active theme preset is visually highlighted in the theme selector grid.",
+        "The useCustomTheme hook correctly applies CSS custom properties to the document root when a theme is selected."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Fix the revision day screen so it no longer shows a generic motivational quote (e.g. 'Spaced repetition boosts long-term retention by up to 80%.'). On a revision day, the screen must display content relevant to the user's scheduled revision tasks — such as the list of topics/subjects due for revision today — rather than a static study tip or motivational quote.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Revision day showing...\"Spaced repetition boosts long-term retention by up to 80%.\". This is wrong. Fix it."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The revision day screen does not display the text 'Spaced repetition boosts long-term retention by up to 80%.' or any other generic motivational quote.",
+        "The revision day screen displays the user's actual revision tasks or subjects scheduled for that day.",
+        "If no revision tasks exist for the day, an appropriate empty state is shown instead of a quote."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files listed under frontend.immutablePaths (frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui).",
-    "Do not alter backend logic or data models."
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Do not change the backend schema or Motoko actor."
   ],
   "nonGoals": [
-    "Implementing new subscription features or changing subscription business logic.",
-    "Redesigning any UI screens.",
-    "Adding new routes or pages."
+    "Adding new theme presets.",
+    "Changing the premium gating logic for themes.",
+    "Modifying the DailyMotivationCard or StudyTipCard components for contexts other than the revision day screen."
   ],
   "imageRequirements": {
     "required": [],

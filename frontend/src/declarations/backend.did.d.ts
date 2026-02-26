@@ -36,6 +36,13 @@ export interface ExamSetup {
   'examDate' : bigint,
   'examName' : string,
 }
+export type PremiumFeature = { 'advanced_statistics' : null } |
+  { 'advanced_focus_mode' : null } |
+  { 'smart_study_insights' : null } |
+  { 'cloud_backup' : null } |
+  { 'customizable_themes' : null } |
+  { 'ad_free_experience' : null } |
+  { 'unlimited_study_plans' : null };
 export interface ProgressData {
   'totalCompleted' : bigint,
   'studyStreak' : bigint,
@@ -89,21 +96,34 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'checkFeatureAccess' : ActorMethod<
+    [PremiumFeature],
+    { 'accessGranted' : boolean }
+  >,
   'createGuestProfile' : ActorMethod<[string, string], undefined>,
   'getAllExams' : ActorMethod<[], Array<Exam>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getDayProgress' : ActorMethod<[bigint], DayProgress>,
+  'getGuestExams' : ActorMethod<[string], Array<Exam>>,
   'getGuestProfile' : ActorMethod<[string], [] | [UserProfile]>,
+  'getGuestStudyStreak' : ActorMethod<[string, bigint], bigint>,
+  'getGuestWeeklyProgress' : ActorMethod<[string, bigint], ProgressData>,
   'getStudyStreak' : ActorMethod<[bigint], bigint>,
+  'getTodayGuestTasks' : ActorMethod<[string, bigint], Array<DailyTask>>,
   'getTodayTasks' : ActorMethod<[bigint], Array<DailyTask>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getWeeklyProgress' : ActorMethod<[bigint], ProgressData>,
+  'hasFeatureAccess' : ActorMethod<[PremiumFeature], boolean>,
+  'hasTierAccess' : ActorMethod<[UserTier], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'markGuestTaskComplete' : ActorMethod<[string, bigint, bigint], undefined>,
+  'markGuestTaskIncomplete' : ActorMethod<[string, bigint, bigint], undefined>,
   'markTaskComplete' : ActorMethod<[bigint, bigint], undefined>,
   'markTaskIncomplete' : ActorMethod<[bigint, bigint], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'submitExamSetup' : ActorMethod<[ExamSetup], bigint>,
+  'submitGuestExamSetup' : ActorMethod<[string, ExamSetup], bigint>,
   'upgradeToPremium' : ActorMethod<[], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

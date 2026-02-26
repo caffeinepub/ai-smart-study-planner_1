@@ -114,6 +114,25 @@
   }
 }
 
+@layer components {
+  /* ── Glass Card — shared utility for all card surfaces ── */
+  .glass-card {
+    background: oklch(1 0 0 / 0.60);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(1 0 0 / 0.18);
+    box-shadow: 0 2px 16px oklch(0.51 0.22 264 / 0.06), 0 1px 4px oklch(0 0 0 / 0.04);
+  }
+
+  .dark .glass-card {
+    background: oklch(0.22 0.04 264 / 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(1 0 0 / 0.08);
+    box-shadow: 0 2px 16px oklch(0 0 0 / 0.18), 0 1px 4px oklch(0 0 0 / 0.12);
+  }
+}
+
 @layer utilities {
   .tab-safe-bottom {
     padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
@@ -132,7 +151,8 @@
   }
 
   .card-surface {
-    @apply bg-card border border-border rounded-2xl shadow-card;
+    @apply rounded-2xl shadow-card;
+    @apply glass-card;
   }
 
   .gradient-primary {

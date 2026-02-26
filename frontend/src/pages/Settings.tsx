@@ -1,31 +1,26 @@
 import React, { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   User,
   Moon,
   Sun,
-  LogOut,
   Info,
   Sparkles,
-  Cloud,
-  CloudOff,
-  RefreshCw,
   Shield,
   ChevronRight,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
-import { useGetCallerUserProfile } from '../hooks/useQueries';
 import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
-import { useGuestMode } from '../hooks/useGuestMode';
-import { useCloudSync } from '../hooks/useCloudSync';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../hooks/useTheme';
-import CloudSyncPrompt from '../components/CloudSyncPrompt';
+import { useLocalProfile } from '../hooks/useLocalProfile';
+import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
+import ThemeSelectorSection from '../components/ThemeSelectorSection';
 import PaywallScreen from '../components/PaywallScreen';
-import ColorThemeSelector from '../components/ColorThemeSelector';
 
 interface SettingsCardProps {
   children: React.ReactNode;
@@ -34,7 +29,7 @@ interface SettingsCardProps {
 
 function SettingsCard({ children, className = '' }: SettingsCardProps) {
   return (
-    <div className={`bg-card border border-border rounded-2xl shadow-card overflow-hidden ${className}`}>
+    <div className={`glass-card rounded-2xl overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -52,10 +47,10 @@ interface SettingsRowProps {
 function SettingsRow({ icon, label, description, right, onClick, danger }: SettingsRowProps) {
   return (
     <div
-      className={`flex items-center gap-3.5 px-4 py-3.5 ${onClick ? 'cursor-pointer hover:bg-muted/40 active:bg-muted/60 transition-colors' : ''}`}
+      className={`flex items-center gap-3.5 px-4 py-3.5 ${onClick ? 'cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors' : ''}`}
       onClick={onClick}
     >
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${danger ? 'bg-destructive/10' : 'bg-primary/8'}`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${danger ? 'bg-destructive/10' : 'bg-primary/8 dark:bg-primary/15'}`}>
         <span className={danger ? 'text-destructive' : 'text-primary'}>{icon}</span>
       </div>
       <div className="flex-1 min-w-0">
@@ -68,32 +63,37 @@ function SettingsRow({ icon, label, description, right, onClick, danger }: Setti
 }
 
 export default function Settings() {
-  const { data: userProfile } = useGetCallerUserProfile();
   const { isPremiumTestingEnabled, togglePremiumTesting } = usePremiumTestingMode();
   const { isPremium: isSubscriptionPremium, status: subscriptionStatus } = useSubscriptionContext();
-  const { isGuestMode, exitGuestMode } = useGuestMode();
-  const { triggerSync, isSyncing, lastSynced, showPrompt, dismissPrompt } = useCloudSync();
-  const { clear, identity } = useInternetIdentity();
-  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+  const { displayName, setDisplayName } = useLocalProfile();
+  const { isPremium } = useConsolidatedPremiumStatus();
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const isAuthenticated = !!identity;
-  const isBackendPremium = userProfile?.userTier === 'premium';
-  const isPremium = isPremiumTestingEnabled || isBackendPremium || isSubscriptionPremium;
+  // Profile editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(displayName);
 
-  const displayName = isGuestMode
-    ? 'Guest User'
-    : userProfile?.name ?? 'Loading...';
+  const handleEditName = () => {
+    setNameInput(displayName);
+    setIsEditingName(true);
+  };
 
-  const handleLogout = async () => {
-    if (isGuestMode) {
-      exitGuestMode();
-      window.location.href = '/login';
-    } else {
-      await clear();
-      queryClient.clear();
+  const handleSaveName = () => {
+    if (nameInput.trim()) {
+      setDisplayName(nameInput.trim());
     }
+    setIsEditingName(false);
+  };
+
+  const handleCancelEdit = () => {
+    setNameInput(displayName);
+    setIsEditingName(false);
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSaveName();
+    if (e.key === 'Escape') handleCancelEdit();
   };
 
   return (
@@ -101,53 +101,79 @@ export default function Settings() {
       {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground text-sm">Manage your account and preferences.</p>
+        <p className="text-muted-foreground text-sm">Manage your preferences.</p>
       </div>
 
-      {/* Profile Card */}
+      {/* Profile Section */}
       <SettingsCard>
-        <div className="p-4 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-primary shrink-0">
-            <User className="w-7 h-7 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-base truncate">{displayName}</p>
-              {isGuestMode && (
-                <Badge variant="outline" className="text-xs rounded-full">Guest</Badge>
-              )}
-              {isPremium && !isGuestMode && (
-                <Badge className="text-xs gap-1 rounded-full bg-primary text-white border-0">
-                  <Sparkles className="w-2.5 h-2.5" />
-                  Premium
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {isGuestMode
-                ? 'Sign in to sync your data across devices'
-                : isAuthenticated
-                ? 'Internet Identity'
-                : 'Not signed in'}
-            </p>
-          </div>
+        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Profile</p>
         </div>
-        {isGuestMode && (
-          <div className="px-4 pb-4">
-            <button
-              onClick={() => { exitGuestMode(); window.location.href = '/login'; }}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-primary bg-primary/8 border border-primary/20 hover:bg-primary/15 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
-            >
-              Sign In for Full Access
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+        <div className="p-4">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-primary shrink-0">
+              <User className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-base truncate">
+                  {displayName || 'No name set'}
+                </p>
+                <Badge variant="outline" className="text-xs rounded-full">Local</Badge>
+                {isPremium && (
+                  <Badge className="text-xs gap-1 rounded-full bg-primary text-white border-0">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    Premium
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Data stored locally on this device
+              </p>
+            </div>
           </div>
-        )}
+
+          {/* Name edit field */}
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={handleNameKeyDown}
+                placeholder="Enter your display name"
+                className="flex-1 h-9 text-sm rounded-xl"
+                autoFocus
+                maxLength={40}
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={!nameInput.trim()}
+                className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleEditName}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-primary bg-primary/8 border border-primary/15 hover:bg-primary/15 active:scale-[0.98] transition-all duration-150"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              {displayName ? 'Edit Display Name' : 'Set Display Name'}
+            </button>
+          )}
+        </div>
       </SettingsCard>
 
       {/* Appearance */}
       <SettingsCard>
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Appearance</p>
         </div>
         <SettingsRow
@@ -162,42 +188,10 @@ export default function Settings() {
             />
           }
         />
-        <div className="border-t border-border">
-          <ColorThemeSelector />
-        </div>
       </SettingsCard>
 
-      {/* Cloud Sync */}
-      <SettingsCard>
-        <div className="px-4 py-3 border-b border-border">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Cloud Backup & Sync</p>
-        </div>
-        <SettingsRow
-          icon={isGuestMode ? <CloudOff className="w-4 h-4" /> : <Cloud className="w-4 h-4" />}
-          label={isGuestMode ? 'Enable Cloud Sync' : 'Sync Now'}
-          description={
-            isGuestMode
-              ? 'Sign in to enable automatic cloud backup'
-              : lastSynced
-              ? `Last synced: ${lastSynced.toLocaleString()}`
-              : 'Keep your study plans safe across devices'
-          }
-          right={
-            <button
-              onClick={triggerSync}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 active:scale-95 transition-all duration-150 disabled:opacity-50"
-            >
-              {isSyncing ? (
-                <RefreshCw className="w-3 h-3 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3 h-3" />
-              )}
-              {isSyncing ? 'Syncing...' : 'Sync'}
-            </button>
-          }
-        />
-      </SettingsCard>
+      {/* Theme Customization */}
+      <ThemeSelectorSection />
 
       {/* Premium Upgrade */}
       {!isPremium && (
@@ -226,7 +220,7 @@ export default function Settings() {
       {/* Subscription Status */}
       {isPremium && subscriptionStatus.tier !== 'free' && (
         <SettingsCard>
-          <div className="px-4 py-3 border-b border-border">
+          <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subscription</p>
           </div>
           <SettingsRow
@@ -248,7 +242,7 @@ export default function Settings() {
 
       {/* Developer Options */}
       <SettingsCard>
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Developer Options</p>
         </div>
         <SettingsRow
@@ -267,7 +261,7 @@ export default function Settings() {
 
       {/* About */}
       <SettingsCard>
-        <div className="px-4 py-3 border-b border-border">
+        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">About</p>
         </div>
         <div className="px-4 py-3.5 space-y-1">
@@ -286,23 +280,19 @@ export default function Settings() {
               className="text-primary hover:underline font-medium"
             >
               caffeine.ai
-            </a>{' '}
-            · © {new Date().getFullYear()}
+            </a>
+            {' '}· © {new Date().getFullYear()}
           </p>
         </div>
       </SettingsCard>
 
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm text-destructive bg-destructive/6 border border-destructive/20 hover:bg-destructive/10 active:scale-[0.98] transition-all duration-150"
-      >
-        <LogOut className="w-4 h-4" />
-        {isGuestMode ? 'Exit Guest Mode' : 'Sign Out'}
-      </button>
-
-      <CloudSyncPrompt open={showPrompt} onClose={dismissPrompt} />
-      <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {/* Paywall */}
+      {showPaywall && (
+        <PaywallScreen
+          open={showPaywall}
+          onClose={() => setShowPaywall(false)}
+        />
+      )}
     </div>
   );
 }

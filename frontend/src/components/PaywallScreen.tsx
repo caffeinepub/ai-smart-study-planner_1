@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X, Check, Sparkles, Zap, Star } from 'lucide-react';
-import { FEATURE_CONFIG, ALL_PREMIUM_FEATURES } from '../types/features';
+import { PREMIUM_FEATURES, ALL_PREMIUM_FEATURES } from '../types/features';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 
 interface PaywallScreenProps {
@@ -76,20 +76,41 @@ export default function PaywallScreen({ open, onClose }: PaywallScreenProps) {
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Features List */}
+          {/* Free tier limitations */}
+          <div className="p-3.5 rounded-2xl bg-muted/50 border border-border">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Free Plan Includes</p>
+            <ul className="space-y-1">
+              {[
+                'Create one study plan',
+                'Daily task management',
+                'Basic Pomodoro timer',
+                'Light & dark theme toggle',
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Premium Features List */}
           <div className="space-y-2.5">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Everything in Premium
             </p>
             {ALL_PREMIUM_FEATURES.map((feature) => {
-              const config = FEATURE_CONFIG[feature];
+              const config = PREMIUM_FEATURES[feature];
               return (
                 <div key={feature} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <Check className="w-4 h-4 text-primary" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm">{config.displayName}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{config.icon}</span>
+                      <p className="font-semibold text-sm">{config.displayName}</p>
+                    </div>
                     <p className="text-xs text-muted-foreground">{config.description}</p>
                   </div>
                 </div>

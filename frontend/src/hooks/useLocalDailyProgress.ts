@@ -1,61 +1,81 @@
-/**
- * Custom hook that calculates and persists daily progress percentage in localStorage.
- * Accepts today's tasks and computes (completedToday / totalToday) * 100.
- */
-
-import { useMemo, useEffect } from 'react';
-import { DailyTask } from '../backend';
+import { useState, useEffect, useCallback } from 'react';
 
 interface DailyProgressData {
-  date: string; // ISO date YYYY-MM-DD
-  percentage: number;
+  date: string;
   completedCount: number;
   totalCount: number;
 }
 
-const STORAGE_KEY = 'dailyProgress';
+const STORAGE_KEY = 'local_daily_progress';
 
-function getTodayISO(): string {
+function getToday(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function loadProgressData(): DailyProgressData | null {
+function loadProgressData(): DailyProgressData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as DailyProgressData;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return { date: getToday(), completedCount: 0, totalCount: 0 };
+    const parsed = JSON.parse(stored);
+    const today = getToday();
+    // Reset if it's a new day
+    if (parsed.date !== today) {
+      return { date: today, completedCount: 0, totalCount: 0 };
+    }
+    return {
+      date: typeof parsed.date === 'string' ? parsed.date : today,
+      completedCount: typeof parsed.completedCount === 'number' ? parsed.completedCount : 0,
+      totalCount: typeof parsed.totalCount === 'number' ? parsed.totalCount : 0,
+    };
   } catch {
-    // ignore
+    return { date: getToday(), completedCount: 0, totalCount: 0 };
   }
-  return null;
 }
 
 function saveProgressData(data: DailyProgressData): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
-    // ignore
+    // Ignore storage errors
   }
 }
 
-export function useLocalDailyProgress(tasks: DailyTask[]) {
-  const today = getTodayISO();
+export function useLocalDailyProgress() {
+  const [progressData, setProgressData] = useState<DailyProgressData>(() => loadProgressData());
 
-  const { percentage, completedCount, totalCount } = useMemo(() => {
-    const total = tasks.length;
-    const completed = tasks.filter((t) => t.isCompleted).length;
-    const pct = total === 0 ? 0 : Math.min(100, Math.round((completed / total) * 100));
-    return { percentage: pct, completedCount: completed, totalCount: total };
-  }, [tasks]);
-
+  // Re-check on mount in case the day changed
   useEffect(() => {
-    const stored = loadProgressData();
-    // Reset if date changed
-    if (!stored || stored.date !== today) {
-      saveProgressData({ date: today, percentage, completedCount, totalCount });
-    } else {
-      saveProgressData({ date: today, percentage, completedCount, totalCount });
+    try {
+      const data = loadProgressData();
+      setProgressData(data);
+    } catch {
+      setProgressData({ date: getToday(), completedCount: 0, totalCount: 0 });
     }
-  }, [today, percentage, completedCount, totalCount]);
+  }, []);
 
-  return { percentage, completedCount, totalCount };
+  const updateProgress = useCallback((completedCount: number, totalCount: number) => {
+    try {
+      const updated: DailyProgressData = {
+        date: getToday(),
+        completedCount: Math.max(0, completedCount),
+        totalCount: Math.max(0, totalCount),
+      };
+      saveProgressData(updated);
+      setProgressData(updated);
+    } catch {
+      // Ignore errors
+    }
+  }, []);
+
+  const percentage =
+    progressData.totalCount > 0
+      ? Math.round((progressData.completedCount / progressData.totalCount) * 100)
+      : 0;
+
+  return {
+    percentage,
+    completedCount: progressData.completedCount,
+    totalCount: progressData.totalCount,
+    updateProgress,
+  };
 }

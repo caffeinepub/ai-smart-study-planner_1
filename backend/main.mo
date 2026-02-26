@@ -17,7 +17,18 @@ actor {
   include MixinAuthorization(accessControlState);
   include MixinStorage();
 
-  // ── User Profile ──────────────────────────────────────────────────────────
+  // ── Premium Features ──────────────────────────────────────────────────────
+
+  public type PremiumFeature = {
+    #smart_study_insights;
+    #advanced_statistics;
+    #unlimited_study_plans;
+    #cloud_backup;
+    #customizable_themes;
+    #ad_free_experience;
+    #advanced_focus_mode;
+  };
+
   public type UserTier = {
     #free;
     #premium;
@@ -25,10 +36,21 @@ actor {
 
   type PersistentUserProfile = {
     name : Text;
-    isPremium : Bool; // legacy field from previous upgrade
     userTier : UserTier;
     guestMode : Bool;
     deviceId : ?Text;
+
+    // Legacy fields
+    isPremium : Bool;
+    legacyPremiumFeatures : ?LegacyPremiumFeatures;
+  };
+
+  type LegacyPremiumFeatures = {
+    smartStudyInsights : Bool;
+    advancedStatistics : Bool;
+    unlimitedStudyPlans : Bool;
+    None : Bool;
+    AllOfTheAbove : Bool;
   };
 
   public type UserProfile = {
@@ -41,7 +63,7 @@ actor {
   let userProfiles = Map.empty<Principal, PersistentUserProfile>();
   let guestProfiles = Map.empty<Text, PersistentUserProfile>();
 
-  // ── Migration Helpers ──────────────────────────────────────────────────────
+  // ── Migration Helpers ─────────────────────────────────────────────────────
 
   func mapUserTier(p : PersistentUserProfile) : PersistentUserProfile {
     {
@@ -49,7 +71,6 @@ actor {
         case (true) { #premium };
         case (false) { #free };
       };
-      isPremium = p.userTier == #premium;
     };
   };
 
@@ -62,17 +83,44 @@ actor {
     };
   };
 
-  func fromUserProfile(p : UserProfile) : PersistentUserProfile {
-    {
-      name = p.name;
-      isPremium = p.userTier == #premium;
-      userTier = p.userTier;
-      guestMode = p.guestMode;
-      deviceId = p.deviceId;
+  // ── Feature Checking ──────────────────────────────────────────────────────
+
+  public query ({ caller }) func hasFeatureAccess(feature : PremiumFeature) : async Bool {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can check feature access");
+    };
+    switch (userProfiles.get(caller)) {
+      case (null) { false };
+      case (?profile) { profile.userTier == #premium };
     };
   };
 
-  // Queries return up-to-date mapping using userTier
+  public query ({ caller }) func hasTierAccess(requiredTier : UserTier) : async Bool {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can check tier access");
+    };
+    switch (userProfiles.get(caller)) {
+      case (null) { false };
+      case (?profile) { profile.userTier == requiredTier };
+    };
+  };
+
+  public query ({ caller }) func checkFeatureAccess(feature : PremiumFeature) : async ({ accessGranted : Bool }) {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can check feature access");
+    };
+    switch (userProfiles.get(caller)) {
+      case (null) {
+        { accessGranted = false };
+      };
+      case (?profile) {
+        { accessGranted = profile.userTier == #premium };
+      };
+    };
+  };
+
+  // ── User Profile Queries and Updates ──────────────────────────────────────
+
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can get their profile");
@@ -97,7 +145,16 @@ actor {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
-    userProfiles.add(caller, fromUserProfile(profile));
+    let persistentProfile : PersistentUserProfile = {
+      name = profile.name;
+      userTier = profile.userTier;
+      guestMode = profile.guestMode;
+      deviceId = profile.deviceId;
+      // Legacy field handling
+      isPremium = profile.userTier == #premium;
+      legacyPremiumFeatures = null;
+    };
+    userProfiles.add(caller, persistentProfile);
   };
 
   // Guest Profile Support
@@ -111,10 +168,12 @@ actor {
   public shared ({ caller }) func createGuestProfile(deviceId : Text, name : Text) : async () {
     let guestProfile : PersistentUserProfile = {
       name;
-      isPremium = false;
       userTier = #free;
       guestMode = true;
       deviceId = ?deviceId;
+      // Legacy field handling
+      isPremium = false;
+      legacyPremiumFeatures = null;
     };
     guestProfiles.add(deviceId, guestProfile);
   };
@@ -123,24 +182,22 @@ actor {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can upgrade to premium");
     };
-
     let currentProfile = switch (userProfiles.get(caller)) {
       case (null) { Runtime.trap("User profile not found") };
       case (?profile) { profile };
     };
-
     let updatedProfile : PersistentUserProfile = {
-      currentProfile with
-      isPremium = true;
-      userTier = #premium;
+      currentProfile with userTier = #premium;
       guestMode = false;
       deviceId = null;
+      // Legacy field handling
+      isPremium = true;
+      legacyPremiumFeatures = null;
     };
-
     userProfiles.add(caller, updatedProfile);
   };
 
-  // ── Domain Types ──────────────────────────────────────────────────────────
+  // ── Domain Types (No Change) ──────────────────────────────────────────────
 
   public type Subject = {
     name : Text;
@@ -191,11 +248,10 @@ actor {
   };
 
   // ── State ─────────────────────────────────────────────────────────────────
-
   var nextExamId : Nat = 1;
   var nextTaskId : Nat = 1;
-
   let userExams = Map.empty<Principal, [Exam]>();
+  let guestExams = Map.empty<Text, [Exam]>();
 
   // ── Study Plan Generation ─────────────────────────────────────────────────
 
@@ -210,18 +266,15 @@ actor {
     let todayStart = startOfDay(now);
     let examDayStart = startOfDay(setup.examDate);
 
-    // Number of days until exam (exclusive of exam day)
-    let daysUntilExam : Int = (examDayStart - todayStart) / nanosecondsPerDay;
+    let daysUntilExam : Int = (examDayStart - todayStart) / (nanosecondsPerDay : Int);
     if (daysUntilExam <= 0) { return [] };
 
     let totalDays = Int.abs(daysUntilExam);
 
-    // Reserve last 2 days (or 1 if only 1 day) for revision
     let revisionDays : Nat = if (totalDays >= 3) { 2 } else if (totalDays >= 2) { 1 } else { 0 };
     let studyDays : Nat = if (totalDays > revisionDays) { totalDays - revisionDays } else { totalDays };
 
-    // Collect all topics
-    var allTopics : [(Text, Text)] = []; // (subjectName, topicName)
+    var allTopics : [(Text, Text)] = [];
     for (subject in setup.subjects.vals()) {
       for (topic in subject.topics.vals()) {
         allTopics := allTopics.concat([(subject.name, topic)]);
@@ -230,16 +283,13 @@ actor {
 
     var tasks : [DailyTask] = [];
     let topicCount = allTopics.size();
-
     if (topicCount == 0) { return [] };
 
-    // Distribute topics across study days
     if (studyDays > 0) {
       var topicIndex = 0;
       var dayIndex = 0;
       while (dayIndex < studyDays and topicIndex < topicCount) {
         let dayStart = todayStart + (dayIndex * nanosecondsPerDay);
-        // Topics per day (spread evenly)
         let remainingTopics = topicCount - topicIndex;
         let remainingDays = studyDays - dayIndex;
         let topicsThisDay : Nat = (remainingTopics + remainingDays - 1) / remainingDays;
@@ -265,12 +315,10 @@ actor {
       };
     };
 
-    // Add revision sessions in the final days
     if (revisionDays > 0 and topicCount > 0) {
       var revDay = 0;
       while (revDay < revisionDays) {
         let dayStart = todayStart + ((studyDays + revDay) * nanosecondsPerDay);
-        // Each revision day covers all subjects
         for (subject in setup.subjects.vals()) {
           let task : DailyTask = {
             id = nextTaskId;
@@ -291,33 +339,30 @@ actor {
     tasks;
   };
 
-  // ── Exam Management ───────────────────────────────────────────────────────
+  // ── Exam Management────────────────────────────────────────────────────────
 
   public shared ({ caller }) func submitExamSetup(setup : ExamSetup) : async Nat {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only registered users can submit exam setups");
     };
 
-    // Premium gate: free users can only have one exam
     let existing = switch (userExams.get(caller)) {
       case (null) { [] };
       case (?e) { e };
     };
 
     if (existing.size() >= 1) {
-      // Check if user is premium
-      let isPremium = switch (userProfiles.get(caller)) {
-        case (null) { false };
-        case (?p) { p.isPremium };
+      let userTier = switch (userProfiles.get(caller)) {
+        case (null) { #free };
+        case (?p) { p.userTier };
       };
-      if (not isPremium and not AccessControl.isAdmin(accessControlState, caller)) {
+      if (userTier != #premium and not (AccessControl.isAdmin(accessControlState, caller))) {
         Runtime.trap("Upgrade to premium to manage multiple exams simultaneously");
       };
     };
 
     let examId = nextExamId;
     nextExamId += 1;
-
     let tasks = generateStudyPlan(examId, setup);
 
     let exam : Exam = {
@@ -332,6 +377,28 @@ actor {
     examId;
   };
 
+  public shared ({ caller }) func submitGuestExamSetup(deviceId : Text, setup : ExamSetup) : async Nat {
+    let existing = switch (guestExams.get(deviceId)) {
+      case (null) { [] };
+      case (?e) { e };
+    };
+
+    let examId = nextExamId;
+    nextExamId += 1;
+    let tasks = generateStudyPlan(examId, setup);
+
+    let exam : Exam = {
+      id = examId;
+      setup = setup;
+      tasks = tasks;
+      createdAt = Time.now();
+    };
+
+    let newExams = existing.concat([exam]);
+    guestExams.add(deviceId, newExams);
+    examId;
+  };
+
   public query ({ caller }) func getAllExams() : async [Exam] {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only registered users can view exams");
@@ -342,7 +409,14 @@ actor {
     };
   };
 
-  // ── Daily Dashboard ───────────────────────────────────────────────────────
+  public query ({ caller }) func getGuestExams(deviceId : Text) : async [Exam] {
+    switch (guestExams.get(deviceId)) {
+      case (null) { [] };
+      case (?existing) { existing };
+    };
+  };
+
+  // ── Task Queries and Day Progress ─────────────────────────────────────────
 
   public query ({ caller }) func getTodayTasks(examId : Nat) : async [DailyTask] {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
@@ -356,6 +430,28 @@ actor {
 
     var foundExam : ?Exam = null;
     for (exam in userExamList.vals()) {
+      if (exam.id == examId) { foundExam := ?exam };
+    };
+
+    let exam = switch (foundExam) {
+      case (null) { Runtime.trap("Exam not found") };
+      case (?e) { e };
+    };
+
+    let todayStart = startOfDay(Time.now());
+    exam.tasks.filter(func(t : DailyTask) : Bool {
+      startOfDay(t.scheduledDate) == todayStart;
+    });
+  };
+
+  public query ({ caller }) func getTodayGuestTasks(deviceId : Text, examId : Nat) : async [DailyTask] {
+    let guestExamList = switch (guestExams.get(deviceId)) {
+      case (null) { Runtime.trap("No exams found for device") };
+      case (?existing) { existing };
+    };
+
+    var foundExam : ?Exam = null;
+    for (exam in guestExamList.vals()) {
       if (exam.id == examId) { foundExam := ?exam };
     };
 
@@ -405,6 +501,7 @@ actor {
     { completedTasks = completed; totalTasks = total; percentage = percentage };
   };
 
+  // ── Exam & Revision ───────────────────────────────────────────────────────
   public shared ({ caller }) func markTaskComplete(examId : Nat, taskId : Nat) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only registered users can mark tasks complete");
@@ -497,20 +594,97 @@ actor {
     userExams.add(caller, newExams);
   };
 
-  // ── Progress Tracking (Premium) ───────────────────────────────────────────
+  // ── Guest Task Management ──────────────────────────────────────────────
+
+  public shared ({ caller }) func markGuestTaskComplete(deviceId : Text, examId : Nat, taskId : Nat) : async () {
+    let guestExamList = switch (guestExams.get(deviceId)) {
+      case (null) { Runtime.trap("No exams found for device") };
+      case (?existing) { existing };
+    };
+
+    var examIndex : ?Nat = null;
+    var idx = 0;
+    for (exam in guestExamList.vals()) {
+      if (exam.id == examId) { examIndex := ?idx };
+      idx += 1;
+    };
+
+    let eIdx = switch (examIndex) {
+      case (null) { Runtime.trap("Exam not found") };
+      case (?i) { i };
+    };
+
+    let exam = guestExamList[eIdx];
+
+    let updatedTasks = exam.tasks.map(func(t : DailyTask) : DailyTask {
+      if (t.id == taskId) {
+        { id = t.id; examId = t.examId; subjectName = t.subjectName;
+          topicName = t.topicName; scheduledDate = t.scheduledDate;
+          isCompleted = true; isRevision = t.isRevision }
+      } else { t };
+    });
+
+    let updatedExam : Exam = {
+      id = exam.id;
+      setup = exam.setup;
+      tasks = updatedTasks;
+      createdAt = exam.createdAt;
+    };
+
+    let newExams = Array.tabulate(guestExamList.size(), func(i : Nat) : Exam {
+      if (i == eIdx) { updatedExam } else { guestExamList[i] };
+    });
+
+    guestExams.add(deviceId, newExams);
+  };
+
+  public shared ({ caller }) func markGuestTaskIncomplete(deviceId : Text, examId : Nat, taskId : Nat) : async () {
+    let guestExamList = switch (guestExams.get(deviceId)) {
+      case (null) { Runtime.trap("No exams found for device") };
+      case (?existing) { existing };
+    };
+
+    var examIndex : ?Nat = null;
+    var idx = 0;
+    for (exam in guestExamList.vals()) {
+      if (exam.id == examId) { examIndex := ?idx };
+      idx += 1;
+    };
+
+    let eIdx = switch (examIndex) {
+      case (null) { Runtime.trap("Exam not found") };
+      case (?i) { i };
+    };
+
+    let exam = guestExamList[eIdx];
+
+    let updatedTasks = exam.tasks.map(func(t : DailyTask) : DailyTask {
+      if (t.id == taskId) {
+        { id = t.id; examId = t.examId; subjectName = t.subjectName;
+          topicName = t.topicName; scheduledDate = t.scheduledDate;
+          isCompleted = false; isRevision = t.isRevision }
+      } else { t };
+    });
+
+    let updatedExam : Exam = {
+      id = exam.id;
+      setup = exam.setup;
+      tasks = updatedTasks;
+      createdAt = exam.createdAt;
+    };
+
+    let newExams = Array.tabulate(guestExamList.size(), func(i : Nat) : Exam {
+      if (i == eIdx) { updatedExam } else { guestExamList[i] };
+    });
+
+    guestExams.add(deviceId, newExams);
+  };
+
+  // ── Progress Data ─────────────────────────────────────────────────────────
 
   public query ({ caller }) func getWeeklyProgress(examId : Nat) : async ProgressData {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only registered users can access progress tracking");
-    };
-
-    // Premium gate
-    let isPremium = switch (userProfiles.get(caller)) {
-      case (null) { false };
-      case (?p) { p.isPremium };
-    };
-    if (not isPremium and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Upgrade to premium to access progress tracking");
     };
 
     let userExamList = switch (userExams.get(caller)) {
@@ -531,7 +705,6 @@ actor {
     let now = Time.now();
     let todayStart = startOfDay(now);
 
-    // Build weekly entries for the past 7 days
     let dayLabels = ["Day-6", "Day-5", "Day-4", "Day-3", "Day-2", "Yesterday", "Today"];
     var weeklyEntries : [WeeklyProgressEntry] = [];
     var dayOffset = 6;
@@ -555,7 +728,6 @@ actor {
       labelIdx += 1;
     };
 
-    // Study streak: consecutive days ending today with at least one completed task
     var streak = 0;
     var checkDay = 0;
     var streakBroken = false;
@@ -576,7 +748,82 @@ actor {
       };
     };
 
-    // Total completed vs pending
+    var totalCompleted = 0;
+    var totalPending = 0;
+    for (t in exam.tasks.vals()) {
+      if (t.isCompleted) { totalCompleted += 1 } else { totalPending += 1 };
+    };
+
+    {
+      weeklyEntries = weeklyEntries;
+      studyStreak = streak;
+      totalCompleted = totalCompleted;
+      totalPending = totalPending;
+    };
+  };
+
+  public query ({ caller }) func getGuestWeeklyProgress(deviceId : Text, examId : Nat) : async ProgressData {
+    let guestExamList = switch (guestExams.get(deviceId)) {
+      case (null) { Runtime.trap("No exams found for device") };
+      case (?existing) { existing };
+    };
+
+    var foundExam : ?Exam = null;
+    for (exam in guestExamList.vals()) {
+      if (exam.id == examId) { foundExam := ?exam };
+    };
+
+    let exam = switch (foundExam) {
+      case (null) { Runtime.trap("Exam not found") };
+      case (?e) { e };
+    };
+
+    let now = Time.now();
+    let todayStart = startOfDay(now);
+
+    let dayLabels = ["Day-6", "Day-5", "Day-4", "Day-3", "Day-2", "Yesterday", "Today"];
+    var weeklyEntries : [WeeklyProgressEntry] = [];
+    var dayOffset = 6;
+    var labelIdx = 0;
+    while (dayOffset >= 0) {
+      let dayStart = todayStart - (dayOffset * nanosecondsPerDay);
+      let dayTasks = exam.tasks.filter(func(t : DailyTask) : Bool {
+        startOfDay(t.scheduledDate) == dayStart;
+      });
+      var completed = 0;
+      for (t in dayTasks.vals()) {
+        if (t.isCompleted) { completed += 1 };
+      };
+      let entry : WeeklyProgressEntry = {
+        dayLabel = dayLabels[labelIdx];
+        completedTasks = completed;
+        totalTasks = dayTasks.size();
+      };
+      weeklyEntries := weeklyEntries.concat([entry]);
+      dayOffset -= 1;
+      labelIdx += 1;
+    };
+
+    var streak = 0;
+    var checkDay = 0;
+    var streakBroken = false;
+    while (not streakBroken) {
+      let dayStart = todayStart - (checkDay * nanosecondsPerDay);
+      let dayTasks = exam.tasks.filter(func(t : DailyTask) : Bool {
+        startOfDay(t.scheduledDate) == dayStart;
+      });
+      var hasCompleted = false;
+      for (t in dayTasks.vals()) {
+        if (t.isCompleted) { hasCompleted := true };
+      };
+      if (hasCompleted) {
+        streak += 1;
+        checkDay += 1;
+      } else {
+        streakBroken := true;
+      };
+    };
+
     var totalCompleted = 0;
     var totalPending = 0;
     for (t in exam.tasks.vals()) {
@@ -596,15 +843,6 @@ actor {
       Runtime.trap("Unauthorized: Only registered users can access progress tracking");
     };
 
-    // Premium gate
-    let isPremium = switch (userProfiles.get(caller)) {
-      case (null) { false };
-      case (?p) { p.isPremium };
-    };
-    if (not isPremium and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Upgrade to premium to access streak tracking");
-    };
-
     let userExamList = switch (userExams.get(caller)) {
       case (null) { return 0 };
       case (?existing) { existing };
@@ -612,6 +850,45 @@ actor {
 
     var foundExam : ?Exam = null;
     for (exam in userExamList.vals()) {
+      if (exam.id == examId) { foundExam := ?exam };
+    };
+
+    let exam = switch (foundExam) {
+      case (null) { return 0 };
+      case (?e) { e };
+    };
+
+    let todayStart = startOfDay(Time.now());
+    var streak = 0;
+    var checkDay = 0;
+    var streakBroken = false;
+    while (not streakBroken) {
+      let dayStart = todayStart - (checkDay * nanosecondsPerDay);
+      let dayTasks = exam.tasks.filter(func(t : DailyTask) : Bool {
+        startOfDay(t.scheduledDate) == dayStart;
+      });
+      var hasCompleted = false;
+      for (t in dayTasks.vals()) {
+        if (t.isCompleted) { hasCompleted := true };
+      };
+      if (hasCompleted) {
+        streak += 1;
+        checkDay += 1;
+      } else {
+        streakBroken := true;
+      };
+    };
+    streak;
+  };
+
+  public query ({ caller }) func getGuestStudyStreak(deviceId : Text, examId : Nat) : async Nat {
+    let guestExamList = switch (guestExams.get(deviceId)) {
+      case (null) { return 0 };
+      case (?existing) { existing };
+    };
+
+    var foundExam : ?Exam = null;
+    for (exam in guestExamList.vals()) {
       if (exam.id == examId) { foundExam := ?exam };
     };
 

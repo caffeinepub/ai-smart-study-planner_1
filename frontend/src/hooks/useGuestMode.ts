@@ -7,10 +7,22 @@ function generateDeviceId(): string {
   return 'guest_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
+function initGuestMode(): boolean {
+  // If already explicitly set, respect that value
+  const stored = localStorage.getItem(GUEST_MODE_KEY);
+  if (stored !== null) {
+    return stored === 'true';
+  }
+  // Default: automatically activate guest mode and persist device ID
+  if (!localStorage.getItem(GUEST_DEVICE_ID_KEY)) {
+    localStorage.setItem(GUEST_DEVICE_ID_KEY, generateDeviceId());
+  }
+  localStorage.setItem(GUEST_MODE_KEY, 'true');
+  return true;
+}
+
 export function useGuestMode() {
-  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => {
-    return localStorage.getItem(GUEST_MODE_KEY) === 'true';
-  });
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => initGuestMode());
 
   const getDeviceId = useCallback((): string => {
     let deviceId = localStorage.getItem(GUEST_DEVICE_ID_KEY);

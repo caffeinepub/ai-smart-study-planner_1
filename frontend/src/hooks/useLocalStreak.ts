@@ -1,22 +1,18 @@
-/**
- * Custom hook for managing daily study streak in localStorage.
- * Tracks consecutive days where at least one task was completed.
- */
-
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface StreakData {
-  count: number;
-  lastCompletionDate: string | null; // ISO date string YYYY-MM-DD
+  currentStreak: number;
+  lastActiveDate: string | null;
+  longestStreak: number;
 }
 
-const STORAGE_KEY = 'studyStreak';
+const STORAGE_KEY = 'local_study_streak';
 
-function getTodayISO(): string {
+function getToday(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function getYesterdayISO(): string {
+function getYesterday(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   return d.toISOString().split('T')[0];
@@ -24,72 +20,80 @@ function getYesterdayISO(): string {
 
 function loadStreakData(): StreakData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as StreakData;
-      return parsed;
-    }
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return { currentStreak: 0, lastActiveDate: null, longestStreak: 0 };
+    const parsed = JSON.parse(stored);
+    return {
+      currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
+      lastActiveDate: typeof parsed.lastActiveDate === 'string' ? parsed.lastActiveDate : null,
+      longestStreak: typeof parsed.longestStreak === 'number' ? parsed.longestStreak : 0,
+    };
   } catch {
-    // ignore parse errors
+    return { currentStreak: 0, lastActiveDate: null, longestStreak: 0 };
   }
-  return { count: 0, lastCompletionDate: null };
 }
 
 function saveStreakData(data: StreakData): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
-    // ignore storage errors
+    // Ignore storage errors
   }
 }
 
 export function useLocalStreak() {
   const [streakData, setStreakData] = useState<StreakData>(() => loadStreakData());
 
-  /**
-   * Call on mount to reset streak if a day was missed.
-   */
+  // Check and reset streak if a day was missed
   const checkAndResetStreak = useCallback(() => {
-    const data = loadStreakData();
-    const today = getTodayISO();
-    const yesterday = getYesterdayISO();
+    try {
+      const data = loadStreakData();
+      const today = getToday();
+      const yesterday = getYesterday();
 
-    // If last completion was neither today nor yesterday, reset streak
-    if (
-      data.lastCompletionDate !== null &&
-      data.lastCompletionDate !== today &&
-      data.lastCompletionDate !== yesterday
-    ) {
-      const reset: StreakData = { count: 0, lastCompletionDate: data.lastCompletionDate };
-      saveStreakData(reset);
-      setStreakData(reset);
-    } else {
-      setStreakData(data);
+      if (
+        data.lastActiveDate !== null &&
+        data.lastActiveDate !== today &&
+        data.lastActiveDate !== yesterday
+      ) {
+        // Streak broken — more than one day gap
+        const reset: StreakData = { ...data, currentStreak: 0 };
+        saveStreakData(reset);
+        setStreakData(reset);
+      } else {
+        setStreakData(data);
+      }
+    } catch {
+      setStreakData({ currentStreak: 0, lastActiveDate: null, longestStreak: 0 });
     }
   }, []);
 
-  /**
-   * Call when a task is completed. Increments streak if this is the first
-   * completion on a new calendar day.
-   */
+  useEffect(() => {
+    checkAndResetStreak();
+  }, [checkAndResetStreak]);
+
   const incrementStreak = useCallback(() => {
-    const today = getTodayISO();
-    const data = loadStreakData();
+    try {
+      const data = loadStreakData();
+      const today = getToday();
 
-    // Already incremented today — no-op
-    if (data.lastCompletionDate === today) return;
+      if (data.lastActiveDate === today) return; // Already counted today
 
-    const yesterday = getYesterdayISO();
-    const newCount =
-      data.lastCompletionDate === yesterday ? data.count + 1 : 1;
-
-    const updated: StreakData = { count: newCount, lastCompletionDate: today };
-    saveStreakData(updated);
-    setStreakData(updated);
+      const newStreak = data.currentStreak + 1;
+      const updated: StreakData = {
+        currentStreak: newStreak,
+        lastActiveDate: today,
+        longestStreak: Math.max(newStreak, data.longestStreak),
+      };
+      saveStreakData(updated);
+      setStreakData(updated);
+    } catch {
+      // Ignore errors
+    }
   }, []);
 
   return {
-    streak: streakData.count,
+    ...streakData,
     incrementStreak,
     checkAndResetStreak,
   };

@@ -2,10 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-the-subscriptionprovider-wraps-the-entire-application-component-tree-in-app-tsx-or-at-the-highest-possible-level-above-all-routes-so-that-every-route-including-the-guest-flow-entered-via-continue-as-guest-has-access-to-the-subscription-context-any-component-calling-usesubscriptioncontext-must-never-encounter-a-missing-provider-eliminating-the-runtime-error-usesubscriptioncontext-must-be-used-within-subscriptionprovider",
-      "featureTitle": "Ensure the SubscriptionProvider wraps the entire application component tree in App.tsx (or at the highest possible level above all routes) so that every route — including the guest flow entered via 'Continue as Guest' — has access to the subscription context. Any component calling useSubscriptionContext must never encounter a missing provider, eliminating the runtime error 'useSubscriptionContext must be used within SubscriptionProvider'.",
+      "featureId": "feature-fix-the-theme-colour-selector-in-settings-so-that-selecting-a-theme-preset-actually-applies-the-chosen-colour-theme-to-the-app-the-selected-theme-s-css-custom-properties-must-be-applied-to-the-document-root-and-persisted-to-localstorage-so-the-theme-survives-page-reloads-the-active-theme-must-be-visually-indicated-in-the-themeselectorsection-grid",
+      "featureTitle": "Fix the theme colour selector in Settings so that selecting a theme preset actually applies the chosen colour theme to the app. The selected theme's CSS custom properties must be applied to the document root and persisted to localStorage so the theme survives page reloads. The active theme must be visually indicated in the ThemeSelectorSection grid.",
       "files": [
-        "frontend/src/App.tsx"
+        "frontend/src/components/ThemeSelectorSection.tsx",
+        "frontend/src/hooks/useCustomTheme.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -17,7 +18,27 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-37"
+        "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-fix-the-revision-day-screen-so-it-no-longer-shows-a-generic-motivational-quote-e-g-spaced-repetition-boosts-long-term-retention-by-up-to-80-on-a-revision-day-the-screen-must-display-content-relevant-to-the-user-s-scheduled-revision-tasks-such-as-the-list-of-topics-subjects-due-for-revision-today-rather-than-a-static-study-tip-or-motivational-quote",
+      "featureTitle": "Fix the revision day screen so it no longer shows a generic motivational quote (e.g. 'Spaced repetition boosts long-term retention by up to 80%.'). On a revision day, the screen must display content relevant to the user's scheduled revision tasks — such as the list of topics/subjects due for revision today — rather than a static study tip or motivational quote.",
+      "files": [
+        "frontend/src/pages/Dashboard.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

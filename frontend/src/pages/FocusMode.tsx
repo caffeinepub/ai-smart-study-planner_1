@@ -1,35 +1,48 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Settings2, Lock } from 'lucide-react';
-import PremiumGate from '../components/PremiumGate';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
+import AdvancedFocusSettings, { AmbientSound } from '../components/AdvancedFocusSettings';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
 import { useGetCallerUserProfile } from '../hooks/useQueries';
-import { useFocusStats } from '../hooks/useFocusStats';
-import { logFocusMinutesForDay } from '../hooks/useWeeklyActivity';
+import { useFocusSessionHistory } from '../hooks/useFocusSessionHistory';
 
 type Phase = 'work' | 'break';
 
-const DEFAULT_WORK = 25 * 60;
-const DEFAULT_BREAK = 5 * 60;
-const WORK_MINUTES = 25;
+const DEFAULT_WORK_MINUTES = 25;
+const DEFAULT_BREAK_MINUTES = 5;
 
 export default function FocusMode() {
-  const [phase, setPhase] = useState<Phase>('work');
-  const [timeLeft, setTimeLeft] = useState(DEFAULT_WORK);
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessions, setSessions] = useState(0);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const { isPremium: isSubscriptionPremium } = useSubscriptionContext();
   const { isPremiumTestingEnabled } = usePremiumTestingMode();
   const { data: userProfile } = useGetCallerUserProfile();
   const isBackendPremium = userProfile?.userTier === 'premium';
   const isPremium = isPremiumTestingEnabled || isBackendPremium || isSubscriptionPremium;
 
-  const { addFocusMinutes, incrementSessionCount } = useFocusStats();
+  const { addSession } = useFocusSessionHistory();
 
-  const totalTime = phase === 'work' ? DEFAULT_WORK : DEFAULT_BREAK;
+  // Custom intervals (premium)
+  const [workMinutes, setWorkMinutes] = useState(DEFAULT_WORK_MINUTES);
+  const [breakMinutes, setBreakMinutes] = useState(DEFAULT_BREAK_MINUTES);
+  const [selectedSound, setSelectedSound] = useState<AmbientSound>('none');
+
+  const [phase, setPhase] = useState<Phase>('work');
+  const [timeLeft, setTimeLeft] = useState(workMinutes * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [sessions, setSessions] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Track session start time for history
+  const sessionStartRef = useRef<number | null>(null);
+  const sessionPhaseRef = useRef<Phase>('work');
+
+  // Sync timeLeft when intervals change (only when not running)
+  useEffect(() => {
+    if (!isRunning) {
+      setTimeLeft(phase === 'work' ? workMinutes * 60 : breakMinutes * 60);
+    }
+  }, [workMinutes, breakMinutes, phase, isRunning]);
+
+  const totalTime = phase === 'work' ? workMinutes * 60 : breakMinutes * 60;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
 
   const size = 240;
@@ -39,25 +52,42 @@ export default function FocusMode() {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
+  const handlePhaseComplete = useCallback((completedPhase: Phase) => {
+    // Log session to history
+    if (sessionStartRef.current !== null) {
+      const duration = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      addSession({
+        timestamp: sessionStartRef.current,
+        durationSeconds: duration,
+        phase: completedPhase,
+      });
+      sessionStartRef.current = null;
+    }
+
+    if (completedPhase === 'work') {
+      setSessions((s) => s + 1);
+      setPhase('break');
+      setTimeLeft(breakMinutes * 60);
+      sessionPhaseRef.current = 'break';
+    } else {
+      setPhase('work');
+      setTimeLeft(workMinutes * 60);
+      sessionPhaseRef.current = 'work';
+    }
+  }, [addSession, workMinutes, breakMinutes]);
+
   useEffect(() => {
     if (isRunning) {
+      if (sessionStartRef.current === null) {
+        sessionStartRef.current = Date.now();
+        sessionPhaseRef.current = phase;
+      }
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(intervalRef.current!);
             setIsRunning(false);
-            if (phase === 'work') {
-              // Record completed work session
-              setSessions((s) => s + 1);
-              addFocusMinutes(WORK_MINUTES);
-              incrementSessionCount();
-              logFocusMinutesForDay(WORK_MINUTES);
-              setPhase('break');
-              setTimeLeft(DEFAULT_BREAK);
-            } else {
-              setPhase('work');
-              setTimeLeft(DEFAULT_WORK);
-            }
+            handlePhaseComplete(sessionPhaseRef.current);
             return 0;
           }
           return prev - 1;
@@ -69,7 +99,7 @@ export default function FocusMode() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, phase, addFocusMinutes, incrementSessionCount]);
+  }, [isRunning, handlePhaseComplete]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -79,15 +109,24 @@ export default function FocusMode() {
 
   const handleReset = () => {
     setIsRunning(false);
+    sessionStartRef.current = null;
     setPhase('work');
-    setTimeLeft(DEFAULT_WORK);
+    setTimeLeft(workMinutes * 60);
+  };
+
+  const handlePlayPause = () => {
+    if (!isRunning && sessionStartRef.current === null) {
+      sessionStartRef.current = Date.now();
+      sessionPhaseRef.current = phase;
+    }
+    setIsRunning(!isRunning);
   };
 
   const phaseColor = phase === 'work' ? '#6366f1' : '#8b5cf6';
   const phaseColorLight = phase === 'work' ? '#e0e7ff' : '#ede9fe';
 
   return (
-    <div className="p-5 space-y-6">
+    <div className="p-5 space-y-6 pb-28">
       {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-2xl font-bold tracking-tight">Focus Mode</h1>
@@ -97,19 +136,20 @@ export default function FocusMode() {
       </div>
 
       {/* Phase Toggle */}
-      <div className="flex gap-2 p-1.5 bg-muted rounded-2xl">
+      <div className="flex gap-2 p-1.5 glass-card rounded-2xl">
         {(['work', 'break'] as Phase[]).map((p) => (
           <button
             key={p}
             onClick={() => {
               if (!isRunning) {
                 setPhase(p);
-                setTimeLeft(p === 'work' ? DEFAULT_WORK : DEFAULT_BREAK);
+                setTimeLeft(p === 'work' ? workMinutes * 60 : breakMinutes * 60);
+                sessionStartRef.current = null;
               }
             }}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
               phase === p
-                ? 'bg-card shadow-xs text-foreground'
+                ? 'bg-primary/15 dark:bg-primary/25 text-primary shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -180,14 +220,14 @@ export default function FocusMode() {
           {/* Reset */}
           <button
             onClick={handleReset}
-            className="w-12 h-12 rounded-2xl bg-card border border-border flex items-center justify-center hover:bg-muted active:scale-90 transition-all duration-150 shadow-xs"
+            className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center hover:brightness-[1.03] active:scale-90 transition-all duration-150"
           >
             <RotateCcw className="w-5 h-5 text-muted-foreground" />
           </button>
 
           {/* Play/Pause */}
           <button
-            onClick={() => setIsRunning(!isRunning)}
+            onClick={handlePlayPause}
             className="w-18 h-18 rounded-2xl flex items-center justify-center active:scale-90 transition-all duration-150 shadow-primary"
             style={{
               width: '72px',
@@ -202,7 +242,7 @@ export default function FocusMode() {
           </button>
 
           {/* Session count */}
-          <div className="w-12 h-12 rounded-2xl bg-card border border-border flex flex-col items-center justify-center shadow-xs">
+          <div className="w-12 h-12 rounded-2xl glass-card flex flex-col items-center justify-center">
             <span className="text-base font-bold text-foreground leading-none">{sessions}</span>
             <span className="text-[9px] text-muted-foreground font-medium mt-0.5">done</span>
           </div>
@@ -215,60 +255,21 @@ export default function FocusMode() {
         </p>
       </div>
 
-      {/* Advanced Focus Mode — Premium */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-sm">Advanced Focus Settings</h2>
-          {!isPremium && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-              <Lock className="w-3 h-3" />
-              Premium
-            </div>
-          )}
-        </div>
-
-        {isPremium ? (
-          <div className="p-4 rounded-2xl bg-card border border-border space-y-3 shadow-card">
-            <p className="text-sm text-muted-foreground">
-              Advanced focus settings are available. Custom session lengths and smart break reminders coming soon.
-            </p>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="p-3 rounded-xl bg-primary/6 border border-primary/15 text-center">
-                <p className="font-bold text-primary">25 min</p>
-                <p className="text-xs text-muted-foreground">Focus</p>
-              </div>
-              <div className="p-3 rounded-xl bg-accent/6 border border-accent/15 text-center">
-                <p className="font-bold text-accent">5 min</p>
-                <p className="text-xs text-muted-foreground">Break</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <button
-            className="w-full p-4 rounded-2xl border-2 border-dashed border-primary/20 hover:border-primary/40 active:scale-[0.98] transition-all duration-150 text-left"
-            onClick={() => setShowAdvanced(true)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Settings2 className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold">Custom Session Lengths</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Set your own focus and break durations
-                </p>
-              </div>
-              <Lock className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </button>
-        )}
-      </div>
-
-      {showAdvanced && !isPremium && (
-        <PremiumGate featureName="advanced-focus-mode">
-          <div />
-        </PremiumGate>
-      )}
+      {/* Advanced Focus Settings — Premium gated */}
+      <AdvancedFocusSettings
+        workMinutes={workMinutes}
+        breakMinutes={breakMinutes}
+        onWorkMinutesChange={(v) => {
+          setWorkMinutes(v);
+          if (!isRunning && phase === 'work') setTimeLeft(v * 60);
+        }}
+        onBreakMinutesChange={(v) => {
+          setBreakMinutes(v);
+          if (!isRunning && phase === 'break') setTimeLeft(v * 60);
+        }}
+        selectedSound={selectedSound}
+        onSoundChange={setSelectedSound}
+      />
     </div>
   );
 }

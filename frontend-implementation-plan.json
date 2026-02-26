@@ -1,22 +1,43 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix SubscriptionProvider missing from guest flow causing crash",
+  "title": "Fix theme colour selection and revision day motivational quote",
   "requirements": [
     {
-      "id": "REQ-37",
-      "summary": "Ensure SubscriptionProvider wraps the entire application component tree so that every route (including guest flow) has access to subscription context, eliminating 'useSubscriptionContext must be used within SubscriptionProvider' runtime errors",
+      "id": "REQ-1",
+      "summary": "Fix theme colour selector in Settings so selecting a theme preset applies the chosen colour theme, persists to localStorage, and visually indicates the active theme",
       "acceptanceCriteria": [
-        "Clicking 'Continue as Guest' on the LoginPage no longer throws 'useSubscriptionContext must be used within SubscriptionProvider'.",
-        "All routes (Dashboard, FocusMode, ProgressTracking, ExamSetup, Settings) render without subscription context errors for both guest and authenticated users.",
-        "SubscriptionProvider is placed in App.tsx or equivalent root-level file, wrapping all route definitions.",
-        "Authenticated user flow continues to work correctly with no regression in subscription state."
+        "Selecting a theme preset in Settings immediately changes the app's colour scheme.",
+        "The selected theme is persisted to localStorage and restored on page reload.",
+        "The active theme preset is visually highlighted in the theme selector grid.",
+        "The useCustomTheme hook correctly applies CSS custom properties to the document root when a theme is selected."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/hooks/useCustomTheme.ts",
           "operation": "modify",
-          "description": "Wrap the entire RouterProvider component tree with SubscriptionProvider to ensure all routes (protected and public) have access to the subscription context. Import SubscriptionProvider from contexts/SubscriptionContext.tsx and place it at the highest level, above the RouterProvider, so that both authenticated and guest flows can access useSubscriptionContext without errors."
+          "description": "Fix the useCustomTheme hook to correctly apply CSS custom properties from the selected theme preset to the document root (:root element) and ensure the theme is persisted to localStorage. The hook should watch for theme changes and immediately update document.documentElement.style with the preset's color values. Verify that the persisted theme is restored on mount."
+        },
+        {
+          "path": "frontend/src/components/ThemeSelectorSection.tsx",
+          "operation": "modify",
+          "description": "Update ThemeSelectorSection to read the currently selected theme from useCustomTheme and add visual indication (e.g., border highlight, checkmark icon, or active state styling) to the active theme preset in the grid. Ensure clicking a theme calls the hook's setter to trigger the theme application logic."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Fix the revision day screen to display actual revision tasks scheduled for today instead of a generic motivational quote",
+      "acceptanceCriteria": [
+        "The revision day screen does not display the text 'Spaced repetition boosts long-term retention by up to 80%.' or any other generic motivational quote.",
+        "The revision day screen displays the user's actual revision tasks or subjects scheduled for that day.",
+        "If no revision tasks exist for the day, an appropriate empty state is shown instead of a quote."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/Dashboard.tsx",
+          "operation": "modify",
+          "description": "Remove or conditionally hide the DailyMotivationCard or StudyTipCard when displaying today's tasks on a revision day. Instead, filter and display revision tasks (where isRevision is true) from the todayTasks array. If no revision tasks exist for the day, show an empty state message (e.g., 'No revision scheduled for today') rather than a motivational quote. Ensure the logic checks the isRevision flag on each DailyTask to identify revision days."
         }
       ]
     }

@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Sparkles, Check, ArrowRight } from 'lucide-react';
-import { PremiumFeature, FEATURE_CONFIG, ALL_PREMIUM_FEATURES } from '../types/features';
+import { PremiumFeature, PREMIUM_FEATURES, ALL_PREMIUM_FEATURES } from '../types/features';
 import PaywallScreen from './PaywallScreen';
 
 interface UpgradePromptProps {
   featureName?: PremiumFeature;
+  highlightedFeature?: PremiumFeature;
 }
 
-export default function UpgradePrompt({ featureName }: UpgradePromptProps) {
+export default function UpgradePrompt({ featureName, highlightedFeature }: UpgradePromptProps) {
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const featuredConfig = featureName ? FEATURE_CONFIG[featureName] : null;
+  // Support both featureName (legacy) and highlightedFeature
+  const highlighted = highlightedFeature ?? featureName;
+  const featuredConfig = highlighted ? PREMIUM_FEATURES[highlighted] : null;
 
   return (
     <>
@@ -52,8 +55,8 @@ export default function UpgradePrompt({ featureName }: UpgradePromptProps) {
         {/* Feature list */}
         <div className="w-full max-w-xs space-y-2 mb-7 text-left">
           {ALL_PREMIUM_FEATURES.map((f) => {
-            const config = FEATURE_CONFIG[f];
-            const isHighlighted = f === featureName;
+            const config = PREMIUM_FEATURES[f];
+            const isHighlighted = f === highlighted;
             return (
               <div
                 key={f}
@@ -68,11 +71,14 @@ export default function UpgradePrompt({ featureName }: UpgradePromptProps) {
                 }`}>
                   <Check className={`w-3.5 h-3.5 ${isHighlighted ? 'text-white' : 'text-primary'}`} />
                 </div>
-                <span className={`text-sm font-medium ${
-                  isHighlighted ? 'font-bold text-primary' : 'text-muted-foreground'
-                }`}>
-                  {config.displayName}
-                </span>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-base shrink-0">{config.icon}</span>
+                  <span className={`text-sm font-medium truncate ${
+                    isHighlighted ? 'font-bold text-primary' : 'text-muted-foreground'
+                  }`}>
+                    {config.displayName}
+                  </span>
+                </div>
               </div>
             );
           })}

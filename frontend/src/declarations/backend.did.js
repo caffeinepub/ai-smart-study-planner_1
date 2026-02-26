@@ -24,6 +24,15 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const PremiumFeature = IDL.Variant({
+  'advanced_statistics' : IDL.Null,
+  'advanced_focus_mode' : IDL.Null,
+  'smart_study_insights' : IDL.Null,
+  'cloud_backup' : IDL.Null,
+  'customizable_themes' : IDL.Null,
+  'ad_free_experience' : IDL.Null,
+  'unlimited_study_plans' : IDL.Null,
+});
 export const DailyTask = IDL.Record({
   'id' : IDL.Nat,
   'isCompleted' : IDL.Bool,
@@ -106,13 +115,30 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'assignUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'checkFeatureAccess' : IDL.Func(
+      [PremiumFeature],
+      [IDL.Record({ 'accessGranted' : IDL.Bool })],
+      ['query'],
+    ),
   'createGuestProfile' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'getAllExams' : IDL.Func([], [IDL.Vec(Exam)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getDayProgress' : IDL.Func([IDL.Nat], [DayProgress], ['query']),
+  'getGuestExams' : IDL.Func([IDL.Text], [IDL.Vec(Exam)], ['query']),
   'getGuestProfile' : IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
+  'getGuestStudyStreak' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Nat], ['query']),
+  'getGuestWeeklyProgress' : IDL.Func(
+      [IDL.Text, IDL.Nat],
+      [ProgressData],
+      ['query'],
+    ),
   'getStudyStreak' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
+  'getTodayGuestTasks' : IDL.Func(
+      [IDL.Text, IDL.Nat],
+      [IDL.Vec(DailyTask)],
+      ['query'],
+    ),
   'getTodayTasks' : IDL.Func([IDL.Nat], [IDL.Vec(DailyTask)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -120,11 +146,16 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getWeeklyProgress' : IDL.Func([IDL.Nat], [ProgressData], ['query']),
+  'hasFeatureAccess' : IDL.Func([PremiumFeature], [IDL.Bool], ['query']),
+  'hasTierAccess' : IDL.Func([UserTier], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'markGuestTaskComplete' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [], []),
+  'markGuestTaskIncomplete' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [], []),
   'markTaskComplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
   'markTaskIncomplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'submitExamSetup' : IDL.Func([ExamSetup], [IDL.Nat], []),
+  'submitGuestExamSetup' : IDL.Func([IDL.Text, ExamSetup], [IDL.Nat], []),
   'upgradeToPremium' : IDL.Func([], [], []),
 });
 
@@ -146,6 +177,15 @@ export const idlFactory = ({ IDL }) => {
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
+  });
+  const PremiumFeature = IDL.Variant({
+    'advanced_statistics' : IDL.Null,
+    'advanced_focus_mode' : IDL.Null,
+    'smart_study_insights' : IDL.Null,
+    'cloud_backup' : IDL.Null,
+    'customizable_themes' : IDL.Null,
+    'ad_free_experience' : IDL.Null,
+    'unlimited_study_plans' : IDL.Null,
   });
   const DailyTask = IDL.Record({
     'id' : IDL.Nat,
@@ -226,13 +266,30 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'assignUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'checkFeatureAccess' : IDL.Func(
+        [PremiumFeature],
+        [IDL.Record({ 'accessGranted' : IDL.Bool })],
+        ['query'],
+      ),
     'createGuestProfile' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'getAllExams' : IDL.Func([], [IDL.Vec(Exam)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getDayProgress' : IDL.Func([IDL.Nat], [DayProgress], ['query']),
+    'getGuestExams' : IDL.Func([IDL.Text], [IDL.Vec(Exam)], ['query']),
     'getGuestProfile' : IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
+    'getGuestStudyStreak' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Nat], ['query']),
+    'getGuestWeeklyProgress' : IDL.Func(
+        [IDL.Text, IDL.Nat],
+        [ProgressData],
+        ['query'],
+      ),
     'getStudyStreak' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
+    'getTodayGuestTasks' : IDL.Func(
+        [IDL.Text, IDL.Nat],
+        [IDL.Vec(DailyTask)],
+        ['query'],
+      ),
     'getTodayTasks' : IDL.Func([IDL.Nat], [IDL.Vec(DailyTask)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -240,11 +297,16 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getWeeklyProgress' : IDL.Func([IDL.Nat], [ProgressData], ['query']),
+    'hasFeatureAccess' : IDL.Func([PremiumFeature], [IDL.Bool], ['query']),
+    'hasTierAccess' : IDL.Func([UserTier], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'markGuestTaskComplete' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [], []),
+    'markGuestTaskIncomplete' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [], []),
     'markTaskComplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
     'markTaskIncomplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'submitExamSetup' : IDL.Func([ExamSetup], [IDL.Nat], []),
+    'submitGuestExamSetup' : IDL.Func([IDL.Text, ExamSetup], [IDL.Nat], []),
     'upgradeToPremium' : IDL.Func([], [], []),
   });
 };

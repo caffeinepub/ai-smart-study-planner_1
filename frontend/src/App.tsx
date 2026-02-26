@@ -7,125 +7,135 @@ import {
   Outlet,
   redirect,
 } from '@tanstack/react-router';
+import { useInternetIdentity } from './hooks/useInternetIdentity';
+import { useGuestMode } from './hooks/useGuestMode';
+import { useGetCallerUserProfile } from './hooks/useQueries';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import Layout from './components/Layout';
+import ProfileSetupModal from './components/ProfileSetupModal';
+import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import ExamSetup from './pages/ExamSetup';
 import FocusMode from './pages/FocusMode';
 import ProgressTracking from './pages/ProgressTracking';
 import Settings from './pages/Settings';
-import LoginPage from './pages/LoginPage';
-import { useInternetIdentity } from './hooks/useInternetIdentity';
-import { useGuestMode } from './hooks/useGuestMode';
-import { useColorTheme } from './hooks/useColorTheme';
-import { SubscriptionProvider } from './contexts/SubscriptionContext';
 
+// Page transition wrapper
 function PageTransition({ children }: { children: React.ReactNode }) {
-  return <div className="page-enter">{children}</div>;
+  return (
+    <div className="page-enter">
+      {children}
+    </div>
+  );
 }
 
-function ProtectedLayout() {
-  const { identity, isInitializing } = useInternetIdentity();
+// Root layout component
+function RootLayout() {
+  const { identity } = useInternetIdentity();
   const { isGuestMode } = useGuestMode();
+  const isAuthenticated = !!identity;
 
-  if (isInitializing) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  const {
+    data: userProfile,
+    isLoading: profileLoading,
+    isFetched: profileFetched,
+  } = useGetCallerUserProfile();
 
-  if (!identity && !isGuestMode) {
-    throw redirect({ to: '/login' });
-  }
+  // Only show profile setup for authenticated (non-guest) users who haven't set up a profile yet
+  const showProfileSetup =
+    isAuthenticated &&
+    !isGuestMode &&
+    !profileLoading &&
+    profileFetched &&
+    userProfile === null;
 
   return (
-    <Layout>
+    <>
       <Outlet />
+      {showProfileSetup && (
+        <ProfileSetupModal
+          open={true}
+          onComplete={() => {
+            // Profile saved, query will auto-refresh
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// App layout — accessible to all users (guest or authenticated)
+function AppLayout() {
+  return (
+    <Layout>
+      <PageTransition>
+        <Outlet />
+      </PageTransition>
     </Layout>
   );
 }
 
-function AppRoot() {
-  // Initialize color theme at root level to apply persisted theme on load
-  useColorTheme();
-  return <Outlet />;
-}
-
-const rootRoute = createRootRoute({ component: AppRoot });
+// Route definitions
+const rootRoute = createRootRoute({ component: RootLayout });
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
-  component: () => (
-    <PageTransition>
-      <LoginPage />
-    </PageTransition>
-  ),
+  component: LoginPage,
 });
 
-const protectedRoute = createRoute({
+const appLayout = createRoute({
   getParentRoute: () => rootRoute,
-  id: 'protected',
-  component: ProtectedLayout,
+  id: 'app',
+  component: AppLayout,
 });
 
 const dashboardRoute = createRoute({
-  getParentRoute: () => protectedRoute,
-  path: '/',
-  component: () => (
-    <PageTransition>
-      <Dashboard />
-    </PageTransition>
-  ),
+  getParentRoute: () => appLayout,
+  path: '/dashboard',
+  component: Dashboard,
 });
 
-const examSetupRoute = createRoute({
-  getParentRoute: () => protectedRoute,
-  path: '/exam-setup',
-  component: () => (
-    <PageTransition>
-      <ExamSetup />
-    </PageTransition>
-  ),
+const setupRoute = createRoute({
+  getParentRoute: () => appLayout,
+  path: '/setup',
+  component: ExamSetup,
 });
 
-const focusModeRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+const focusRoute = createRoute({
+  getParentRoute: () => appLayout,
   path: '/focus',
-  component: () => (
-    <PageTransition>
-      <FocusMode />
-    </PageTransition>
-  ),
+  component: FocusMode,
 });
 
 const progressRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => appLayout,
   path: '/progress',
-  component: () => (
-    <PageTransition>
-      <ProgressTracking />
-    </PageTransition>
-  ),
+  component: ProgressTracking,
 });
 
 const settingsRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () => appLayout,
   path: '/settings',
-  component: () => (
-    <PageTransition>
-      <Settings />
-    </PageTransition>
-  ),
+  component: Settings,
+});
+
+// Index route always redirects to dashboard — no auth check needed
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  beforeLoad: () => {
+    throw redirect({ to: '/dashboard' });
+  },
 });
 
 const routeTree = rootRoute.addChildren([
+  indexRoute,
   loginRoute,
-  protectedRoute.addChildren([
+  appLayout.addChildren([
     dashboardRoute,
-    examSetupRoute,
-    focusModeRoute,
+    setupRoute,
+    focusRoute,
     progressRoute,
     settingsRoute,
   ]),
