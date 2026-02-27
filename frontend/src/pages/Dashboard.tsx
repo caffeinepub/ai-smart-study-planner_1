@@ -29,6 +29,9 @@ import DailyMotivationCard from '../components/DailyMotivationCard';
 import StudyTipCard from '../components/StudyTipCard';
 import NextFocusSessionCard from '../components/NextFocusSessionCard';
 import ReminderBanners from '../components/ReminderBanners';
+import StudyCompanion from '../components/StudyCompanion';
+import ShareButton from '../components/ShareButton';
+import AIInsightsSummaryCard from '../components/AIInsightsSummaryCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -154,171 +157,41 @@ export default function Dashboard() {
       {/* ── Content area ── */}
       <div className="max-w-lg mx-auto px-4 pb-28">
 
-        {/* ── Floating Main Card (overlaps hero header) ── */}
-        <div className="-mt-12 relative z-10">
-          <div className="glass-card rounded-3xl p-5">
-            {/* Card header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                  {isRevisionDay ? (
-                    <RefreshCw className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Target className="w-4 h-4 text-primary" />
-                  )}
+        {/* ── Floating section (overlaps hero header) ── */}
+        <div className="-mt-12 relative z-10 space-y-4">
+
+          {/* ── 1. Stats Row: Streak + Today's Progress ── */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Streak Card */}
+            <div className="glass-card rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-400/10 flex items-center justify-center">
+                  <Flame className="w-4 h-4 text-orange-500 dark:text-orange-400" />
                 </div>
-                <div>
-                  <h2 className="text-sm font-bold text-foreground">
-                    {isRevisionDay ? 'Revision Tasks' : "Today's Tasks"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {totalToday > 0
-                      ? `${completedToday} of ${totalToday} completed`
-                      : 'No tasks scheduled'}
-                  </p>
-                </div>
+                <span className="text-xs font-semibold text-muted-foreground">Streak</span>
               </div>
-              {totalToday > 0 && (
-                <Badge
-                  variant={completedToday === totalToday ? 'default' : 'secondary'}
-                  className={
-                    completedToday === totalToday
-                      ? 'bg-emerald-500 text-white text-xs'
-                      : 'text-xs'
-                  }
-                >
-                  {completedToday === totalToday
-                    ? '🎉 Done!'
-                    : `${Math.round((completedToday / totalToday) * 100)}%`}
-                </Badge>
-              )}
+              <p className="text-2xl font-bold text-foreground">{streak}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {streak === 1 ? 'day' : 'days'} in a row
+              </p>
             </div>
 
-            {/* Progress bar */}
-            {totalToday > 0 && (
-              <div className="mb-4">
-                <Progress
-                  value={(completedToday / totalToday) * 100}
-                  className="h-2 bg-primary/10 dark:bg-primary/20"
-                />
-              </div>
-            )}
-
-            {/* Revision day banner */}
-            {isRevisionDay && (
-              <div className="mb-4 flex items-start gap-3 p-3 rounded-xl bg-primary/8 dark:bg-primary/15 border border-primary/20">
-                <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                  <BookMarked className="w-4 h-4 text-primary" />
+            {/* Today's Progress Card */}
+            <div className="glass-card rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                  <Target className="w-4 h-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Revision Day 📚</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Review and consolidate your knowledge. Go through your notes and test yourself on each subject.
-                  </p>
-                </div>
+                <span className="text-xs font-semibold text-muted-foreground">Today</span>
               </div>
-            )}
-
-            {/* Task list */}
-            {examsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="w-5 h-5 rounded-full" />
-                    <Skeleton className="h-4 flex-1 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : !activeExam ? (
-              <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-2xl bg-primary/8 dark:bg-primary/15 flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="w-6 h-6 text-primary" />
-                </div>
-                <p className="text-sm font-medium text-foreground mb-1">No study plan yet</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Create a study plan to see your daily tasks here.
-                </p>
-                <button
-                  onClick={() => navigate({ to: '/setup' })}
-                  className="inline-flex items-center gap-2 bg-primary hover:opacity-90 text-primary-foreground text-sm font-semibold px-4 py-2 rounded-xl transition-all active:scale-95"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create Study Plan
-                </button>
-              </div>
-            ) : todayTasks.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center mx-auto mb-3">
-                  <Trophy className="w-6 h-6 text-emerald-500 dark:text-emerald-400" />
-                </div>
-                <p className="text-sm font-medium text-foreground mb-1">No tasks today</p>
-                <p className="text-xs text-muted-foreground">
-                  Enjoy your rest day or review past topics!
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {todayTasks.map((task) => {
-                  const isPending =
-                    (markComplete.isPending || markIncomplete.isPending) &&
-                    (markComplete.variables?.taskId === task.id ||
-                      markIncomplete.variables?.taskId === task.id);
-
-                  return (
-                    <button
-                      key={String(task.id)}
-                      onClick={() =>
-                        handleToggleTask(task.id, task.examId, task.isCompleted)
-                      }
-                      disabled={isPending}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-[0.98] ${
-                        task.isCompleted
-                          ? 'bg-emerald-500/8 dark:bg-emerald-400/10'
-                          : 'bg-muted/40 hover:bg-muted/60'
-                      } ${isPending ? 'opacity-60' : ''}`}
-                    >
-                      {task.isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-muted-foreground shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-sm font-medium truncate ${
-                            task.isCompleted
-                              ? 'line-through text-muted-foreground'
-                              : 'text-foreground'
-                          }`}
-                        >
-                          {task.topicName}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {task.subjectName}
-                          {task.isRevision && (
-                            <span className="ml-1 text-primary font-medium">· Revision</span>
-                          )}
-                        </p>
-                      </div>
-                      {isPending && (
-                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+              <p className="text-2xl font-bold text-foreground">{progressPct}%</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {totalToday > 0 ? `${completedToday}/${totalToday} tasks` : 'No tasks'}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* ── Secondary Cards ── */}
-        <div className="mt-4 space-y-4">
-
-          {/* Reminder Banners */}
-          {exams && exams.length > 0 && (
-            <ReminderBanners exams={exams} />
-          )}
-
-          {/* Quick Actions */}
+          {/* ── 2. Quick Actions ── */}
           <div className="glass-card rounded-2xl p-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Quick Actions
@@ -348,77 +221,153 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Streak Card */}
-            <div className="glass-card rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-400/10 flex items-center justify-center">
-                  <Flame className="w-4 h-4 text-orange-500 dark:text-orange-400" />
+          {/* ── 3. Today's Tasks Card ── */}
+          <div className="glass-card rounded-3xl p-5">
+            {/* Card header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-primary" />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground">Streak</span>
+                <div>
+                  <h2 className="text-sm font-bold text-foreground">
+                    {isRevisionDay ? '📖 Revision Day' : "Today's Tasks"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {totalToday > 0
+                      ? `${completedToday} of ${totalToday} complete`
+                      : 'No tasks scheduled'}
+                  </p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-foreground">{streak}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {streak === 1 ? 'day' : 'days'} in a row
-              </p>
+              <div className="flex items-center gap-2">
+                <ShareButton />
+                {totalToday > 0 && (
+                  <Badge
+                    variant={progressPct === 100 ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {progressPct}%
+                  </Badge>
+                )}
+              </div>
             </div>
 
-            {/* Exam Countdown Card */}
-            <div className="glass-card rounded-2xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-primary" />
-                </div>
-                <span className="text-xs font-semibold text-muted-foreground">Exam</span>
+            {/* Progress bar */}
+            {totalToday > 0 && (
+              <div className="mb-4">
+                <Progress value={progressPct} className="h-1.5" />
               </div>
-              {activeExam ? (
-                <>
-                  <p className="text-2xl font-bold text-foreground">
-                    {isPast ? '—' : examIsToday ? '0' : daysRemaining}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {isPast ? 'Completed' : examIsToday ? 'Today! 🍀' : 'days left'}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-2xl font-bold text-muted-foreground">—</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">No exam set</p>
-                </>
-              )}
-            </div>
+            )}
+
+            {/* Loading state */}
+            {examsLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 rounded-xl" />
+                ))}
+              </div>
+            ) : todayTasks.length === 0 ? (
+              /* Empty state */
+              <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+                {activeExam ? (
+                  <>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                      <Trophy className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">All caught up!</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        No tasks scheduled for today. Check back tomorrow.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <BookMarked className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">No study plan yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Set up your exam to get personalized daily tasks.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate({ to: '/setup' })}
+                      className="px-5 py-2 rounded-xl text-xs font-bold text-white active:scale-95 transition-all duration-150"
+                      style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
+                    >
+                      Create Study Plan
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* Task list */
+              <div className="space-y-2">
+                {todayTasks.map((task) => (
+                  <button
+                    key={task.id.toString()}
+                    onClick={() => handleToggleTask(task.id, task.examId, task.isCompleted)}
+                    disabled={markComplete.isPending || markIncomplete.isPending}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 active:scale-[0.98] text-left ${
+                      task.isCompleted
+                        ? 'bg-emerald-500/8 border-emerald-500/20 dark:bg-emerald-400/8 dark:border-emerald-400/20'
+                        : 'bg-card border-border hover:bg-muted/40'
+                    }`}
+                  >
+                    <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                      task.isCompleted
+                        ? 'text-emerald-500 dark:text-emerald-400'
+                        : 'text-muted-foreground/40'
+                    }`}>
+                      {task.isCompleted
+                        ? <CheckCircle2 className="w-5 h-5" />
+                        : <Circle className="w-5 h-5" />
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-semibold truncate ${
+                        task.isCompleted
+                          ? 'line-through text-muted-foreground'
+                          : 'text-foreground'
+                      }`}>
+                        {task.topicName}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {task.subjectName}
+                        {task.isRevision && (
+                          <span className="ml-1.5 text-primary font-medium">· Revision</span>
+                        )}
+                      </p>
+                    </div>
+                    {(markComplete.isPending || markIncomplete.isPending) && (
+                      <RefreshCw className="w-3.5 h-3.5 text-muted-foreground animate-spin shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Daily Progress Card */}
-          {activeExam && (
-            <div className="glass-card rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-accent/10 dark:bg-accent/20 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-accent" />
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">Daily Progress</span>
-                </div>
-                <span className="text-sm font-bold text-accent">{progressPct}%</span>
-              </div>
-              <Progress value={progressPct} className="h-2.5 bg-accent/10 dark:bg-accent/20" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {completedToday} of {totalToday} tasks completed today
-              </p>
-            </div>
-          )}
+          {/* ── 4. Reminder Banners ── */}
+          <ReminderBanners exams={exams ?? []} />
 
-          {/* Next Focus Session */}
+          {/* ── 5. AI Insights Summary Card ── */}
+          <AIInsightsSummaryCard />
+
+          {/* ── 6. Study Companion ── */}
+          <StudyCompanion />
+
+          {/* ── 7. Daily Motivation ── */}
+          <DailyMotivationCard />
+
+          {/* ── 8. Study Tip ── */}
+          <StudyTipCard />
+
+          {/* ── 9. Next Focus Session ── */}
           <NextFocusSessionCard activeExam={activeExam} tasks={todayTasks} />
-
-          {/* Motivational cards — only show on non-revision days */}
-          {!isRevisionDay && (
-            <>
-              <DailyMotivationCard />
-              <StudyTipCard />
-            </>
-          )}
         </div>
       </div>
     </div>

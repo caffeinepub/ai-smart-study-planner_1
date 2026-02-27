@@ -1,33 +1,23 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Project named Studiora. User has provided a custom image to use as the Studiora logo.",
   "architectural_notes": [],
-  "known_issues": [
-    "Theme colour not changing when selected in Settings",
-    "Revision day screen incorrectly showing motivational quote instead of expected content"
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-the-theme-colour-selector-in-settings-so-that-selecting-a-theme-preset-actually-applies-the-chosen-colour-theme-to-the-app-the-selected-theme-s-css-custom-properties-must-be-applied-to-the-document-root-and-persisted-to-localstorage-so-the-theme-survives-page-reloads-the-active-theme-must-be-visually-indicated-in-the-themeselectorsection-grid",
-      "title": "Fix the theme colour selector in Settings so that selecting a theme preset actually applies the chosen colour theme to the app. The selected theme's CSS custom properties must be applied to the document root and persisted to localStorage so the theme survives page reloads. The active theme must be visually indicated in the ThemeSelectorSection grid.",
+      "id": "feature-save-the-uploaded-image-open-book-with-green-sprout-and-blue-purple-circular-background-as-the-studiora-logo-asset-at-frontend-public-assets-generated-studiora-logo-png-and-use-it-as-the-logo-displayed-in-the-app-header-layout-tsx-and-on-the-login-landing-page-loginpage-tsx-replacing-any-previously-generated-or-svg-based-logo",
+      "title": "Save the uploaded image (open book with green sprout and blue/purple circular background) as the Studiora logo asset at `frontend/public/assets/generated/studiora-logo.png` and use it as the logo displayed in the app header (Layout.tsx) and on the login/landing page (LoginPage.tsx), replacing any previously generated or SVG-based logo.",
       "reqIds": [
         "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-fix-the-revision-day-screen-so-it-no-longer-shows-a-generic-motivational-quote-e-g-spaced-repetition-boosts-long-term-retention-by-up-to-80-on-a-revision-day-the-screen-must-display-content-relevant-to-the-user-s-scheduled-revision-tasks-such-as-the-list-of-topics-subjects-due-for-revision-today-rather-than-a-static-study-tip-or-motivational-quote",
-      "title": "Fix the revision day screen so it no longer shows a generic motivational quote (e.g. 'Spaced repetition boosts long-term retention by up to 80%.'). On a revision day, the screen must display content relevant to the user's scheduled revision tasks — such as the list of topics/subjects due for revision today — rather than a static study tip or motivational quote.",
-      "reqIds": [
-        "REQ-2"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [],
-  "projectName": "Fix theme colour selection and revision day motivational quote",
+  "gameProjectType": "none",
+  "projectName": "Studiora",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

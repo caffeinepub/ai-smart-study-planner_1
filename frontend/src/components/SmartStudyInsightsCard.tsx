@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Brain, TrendingUp, AlertTriangle, Clock, Sparkles } from 'lucide-react';
 import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
+import { useAIInsights } from '../hooks/useAIInsights';
 import PaywallScreen from './PaywallScreen';
 import type { DailyTask } from '../backend';
 
@@ -16,7 +17,7 @@ interface Insight {
   type: 'positive' | 'warning' | 'info';
 }
 
-function computeInsights(tasks: DailyTask[], allTasks: DailyTask[]): Insight[] {
+function computeStaticInsights(tasks: DailyTask[], allTasks: DailyTask[]): Insight[] {
   const insights: Insight[] = [];
 
   // Insight 1: Completion rate today
@@ -93,8 +94,28 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
   const [showPaywall, setShowPaywall] = useState(false);
 
   const { isPremium, isLoading: premiumLoading } = useConsolidatedPremiumStatus();
+  const aiInsights = useAIInsights();
 
-  const insights = computeInsights(tasks, allTasks.length > 0 ? allTasks : tasks);
+  // Prefer AI insights when available; fall back to static computation
+  const staticInsights = computeStaticInsights(tasks, allTasks.length > 0 ? allTasks : tasks);
+
+  // Map AI insights to the local Insight format for display
+  const aiMappedInsights: Insight[] = aiInsights.slice(0, 3).map((ins) => ({
+    icon: ins.type === 'warning'
+      ? <AlertTriangle className="w-4 h-4" />
+      : ins.type === 'encouragement'
+      ? <TrendingUp className="w-4 h-4" />
+      : <Clock className="w-4 h-4" />,
+    title: ins.title,
+    description: ins.message,
+    type: ins.type === 'warning'
+      ? 'warning'
+      : ins.type === 'encouragement'
+      ? 'positive'
+      : 'info',
+  }));
+
+  const insights = aiInsights.length > 0 ? aiMappedInsights : staticInsights;
 
   const typeStyles = {
     positive: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',

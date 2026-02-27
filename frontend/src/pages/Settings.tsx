@@ -264,34 +264,15 @@ export default function Settings() {
         <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">About</p>
         </div>
-        <div className="px-4 py-3.5 space-y-1">
-          <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 text-muted-foreground" />
-            <p className="text-sm font-semibold">StudyPlan v1.0.0</p>
-          </div>
-          <p className="text-xs text-muted-foreground pl-6">
-            Built with{' '}
-            <span className="text-red-500">♥</span>{' '}
-            using{' '}
-            <a
-              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline font-medium"
-            >
-              caffeine.ai
-            </a>
-            {' '}· © {new Date().getFullYear()}
-          </p>
-        </div>
+        <SettingsRow
+          icon={<Info className="w-4 h-4" />}
+          label="Studiora — Study Planner"
+          description="Version 1.0.0 · Built on the Internet Computer"
+        />
       </SettingsCard>
 
-      {/* Paywall */}
       {showPaywall && (
-        <PaywallScreen
-          open={showPaywall}
-          onClose={() => setShowPaywall(false)}
-        />
+        <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
       )}
     </div>
   );

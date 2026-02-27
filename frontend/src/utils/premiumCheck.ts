@@ -1,31 +1,39 @@
 import { useGetCallerUserProfile } from '../hooks/useQueries';
-import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
+import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
+import { UserTier } from '../backend';
 
-/**
- * Consolidated premium status hook.
- * Checks all three sources: backend profile UserTier, SubscriptionContext isPremium,
- * and usePremiumTestingMode. Returns isPremium=true if ANY source confirms premium.
- * Also returns isLoading so callers can defer gating until the status is known.
- */
 export function useConsolidatedPremiumStatus() {
-  const { data: userProfile, isLoading: profileLoading, isFetched } = useGetCallerUserProfile();
-  const { isPremiumTestingEnabled } = usePremiumTestingMode();
+  const { data: userProfile, isLoading: profileLoading } = useGetCallerUserProfile();
   const { isPremium: isSubscriptionPremium } = useSubscriptionContext();
+  const { isPremiumTestingEnabled } = usePremiumTestingMode();
 
-  const isBackendPremium = userProfile?.userTier === 'premium';
-  const isPremium = isPremiumTestingEnabled || isBackendPremium || isSubscriptionPremium;
+  // Check backend premium status from user profile
+  const isBackendPremium =
+    userProfile != null &&
+    'userTier' in userProfile &&
+    userProfile.userTier === UserTier.premium;
 
-  // Consider loading if the profile hasn't been fetched yet and we're not using
-  // a local override (testing mode or subscription context already confirmed premium)
-  const isLoading = profileLoading && !isPremiumTestingEnabled && !isSubscriptionPremium;
+  // Premium testing mode ONLY contributes when explicitly enabled (true)
+  // It must be the boolean true, not a truthy string
+  const testingModeActive = isPremiumTestingEnabled === true;
+
+  // Real premium: backend tier OR subscription context (not testing mode)
+  const isRealPremium = isBackendPremium || isSubscriptionPremium;
+
+  // Final premium status: real premium OR testing mode explicitly enabled
+  const isPremium = isRealPremium || testingModeActive;
+
+  // Only show loading state when we're waiting for real premium data
+  // and testing mode is NOT active (testing mode resolves instantly from localStorage)
+  const isLoading = !testingModeActive && profileLoading && !isSubscriptionPremium;
 
   return {
     isPremium,
     isLoading,
-    isFetched,
     isBackendPremium,
     isSubscriptionPremium,
-    isPremiumTestingEnabled,
+    isPremiumTestingEnabled: testingModeActive,
+    isRealPremium,
   };
 }

@@ -221,7 +221,7 @@ export default function AdvancedFocusSettings({
             </div>
             {selectedSound !== 'none' && (
               <p className="text-[10px] text-muted-foreground text-center">
-                🎵 {AMBIENT_SOUNDS.find((s) => s.id === selectedSound)?.label} ambience selected (UI only)
+                🎵 {AMBIENT_SOUNDS.find((s) => s.id === selectedSound)?.label} ambience playing
               </p>
             )}
           </div>

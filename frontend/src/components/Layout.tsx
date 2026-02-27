@@ -12,16 +12,16 @@ export default function Layout({ children }: LayoutProps) {
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b border-border px-5 py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs">
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs shrink-0">
             <img
-              src="/assets/generated/app-icon-indigo.dim_256x256.png"
-              alt="StudyPlan Logo"
-              className="w-full h-full object-cover"
+              src="/assets/file_0000000068a87208913cc2e62995fbaa.png"
+              alt="Studiora logo"
+              className="w-full h-full object-contain"
             />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">AI Study Planner</h1>
-            <p className="text-[10px] text-muted-foreground leading-tight">Smart scheduling</p>
+            <h1 className="text-sm font-bold text-foreground leading-tight tracking-tight">Studiora</h1>
+            <p className="text-[10px] text-muted-foreground leading-tight">Study Planner</p>
           </div>
         </div>
         <ThemeToggle />

@@ -42,7 +42,7 @@ export default function ProfileSetupModal({ open, onComplete }: ProfileSetupModa
     <Dialog open={open}>
       <DialogContent className="max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Welcome to StudyPlan! 👋</DialogTitle>
+          <DialogTitle>Welcome to Studiora! 👋</DialogTitle>
           <DialogDescription>
             Let's set up your profile to get started. What should we call you?
           </DialogDescription>

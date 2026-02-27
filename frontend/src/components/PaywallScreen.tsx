@@ -64,7 +64,7 @@ export default function PaywallScreen({ open, onClose }: PaywallScreenProps) {
               <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="text-white/80 text-xs font-bold uppercase tracking-widest">StudyPlan Premium</span>
+              <span className="text-white/80 text-xs font-bold uppercase tracking-widest">Studiora Premium</span>
             </div>
             <DialogTitle className="text-2xl font-bold text-white mb-1.5">
               Unlock Your Full Potential

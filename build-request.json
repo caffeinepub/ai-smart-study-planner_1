@@ -1,54 +1,37 @@
 {
   "kind": "build_request",
-  "title": "Fix theme colour selection and revision day motivational quote",
-  "priority": "high",
+  "title": "Replace Studiora logo with uploaded custom image",
+  "projectName": "Studiora",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the theme colour selector in Settings so that selecting a theme preset actually applies the chosen colour theme to the app. The selected theme's CSS custom properties must be applied to the document root and persisted to localStorage so the theme survives page reloads. The active theme must be visually indicated in the ThemeSelectorSection grid.",
+      "text": "Save the uploaded image (open book with green sprout and blue/purple circular background) as the Studiora logo asset at `frontend/public/assets/generated/studiora-logo.png` and use it as the logo displayed in the app header (Layout.tsx) and on the login/landing page (LoginPage.tsx), replacing any previously generated or SVG-based logo.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-5"
         ],
         "quotes": [
-          "Theme colour not changing when selected."
+          "Use this image as studiora logo."
         ]
       },
       "acceptanceCriteria": [
-        "Selecting a theme preset in Settings immediately changes the app's colour scheme.",
-        "The selected theme is persisted to localStorage and restored on page reload.",
-        "The active theme preset is visually highlighted in the theme selector grid.",
-        "The useCustomTheme hook correctly applies CSS custom properties to the document root when a theme is selected."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Fix the revision day screen so it no longer shows a generic motivational quote (e.g. 'Spaced repetition boosts long-term retention by up to 80%.'). On a revision day, the screen must display content relevant to the user's scheduled revision tasks — such as the list of topics/subjects due for revision today — rather than a static study tip or motivational quote.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "Revision day showing...\"Spaced repetition boosts long-term retention by up to 80%.\". This is wrong. Fix it."
-        ]
-      },
-      "acceptanceCriteria": [
-        "The revision day screen does not display the text 'Spaced repetition boosts long-term retention by up to 80%.' or any other generic motivational quote.",
-        "The revision day screen displays the user's actual revision tasks or subjects scheduled for that day.",
-        "If no revision tasks exist for the day, an appropriate empty state is shown instead of a quote."
+        "The uploaded image is saved as `frontend/public/assets/generated/studiora-logo.png`.",
+        "The sticky header in Layout.tsx renders the image as the Studiora logo (replacing any prior logo element).",
+        "The login/landing page (LoginPage.tsx) renders the same image as the app logo.",
+        "The logo image has appropriate alt text ('Studiora logo') and a sensible display size (e.g., h-8 or h-10 in the header, larger on the login page).",
+        "No broken image references or leftover old logo elements remain."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "Do not change the backend schema or Motoko actor."
+    "Do not modify any files under frontend/src/hooks/ that are listed as immutable.",
+    "Do not alter backend logic."
   ],
   "nonGoals": [
-    "Adding new theme presets.",
-    "Changing the premium gating logic for themes.",
-    "Modifying the DailyMotivationCard or StudyTipCard components for contexts other than the revision day screen."
+    "Changing the app color theme or any other branding elements beyond the logo.",
+    "Modifying backend code."
   ],
   "imageRequirements": {
     "required": [],

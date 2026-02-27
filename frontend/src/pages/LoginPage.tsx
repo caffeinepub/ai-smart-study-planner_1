@@ -58,16 +58,19 @@ export default function LoginPage() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-3xl bg-primary/20 blur-xl scale-110" />
                 <img
-                  src="/assets/generated/app-icon-indigo.dim_256x256.png"
-                  alt="StudyPlan Logo"
-                  className="relative w-24 h-24 rounded-3xl shadow-primary object-cover"
+                  src="/assets/file_0000000068a87208913cc2e62995fbaa.png"
+                  alt="Studiora logo"
+                  className="relative w-24 h-24 object-contain drop-shadow-lg"
                 />
               </div>
             </div>
             <div className="space-y-1.5">
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                StudyPlan
+                Studiora
               </h1>
+              <p className="text-base font-medium text-muted-foreground">
+                Study Planner
+              </p>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
                 Your intelligent study companion. Plan smarter, study better, achieve more.
               </p>

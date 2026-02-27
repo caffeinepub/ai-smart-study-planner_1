@@ -6,6 +6,7 @@ import { useLocalStreak } from '../hooks/useLocalStreak';
 import { useLocalDailyProgress } from '../hooks/useLocalDailyProgress';
 import { useGuestMode } from '../hooks/useGuestMode';
 import { Skeleton } from '@/components/ui/skeleton';
+import AIInsightsPanel from '../components/AIInsightsPanel';
 
 // ── Custom Tooltip ────────────────────────────────────────────────────────────
 
@@ -126,7 +127,7 @@ const ProgressTracking: React.FC = () => {
     );
   }
 
-  // No exams yet — show empty state
+  // No exams yet — show empty state + AI insights panel (for no-exam insight)
   if (!activeExam) {
     return (
       <div className="min-h-screen bg-background">
@@ -135,6 +136,9 @@ const ProgressTracking: React.FC = () => {
           <p className="text-sm text-muted-foreground">Track your study journey</p>
         </div>
         <EmptyProgressState />
+        <div className="px-4 pb-8">
+          <AIInsightsPanel />
+        </div>
       </div>
     );
   }
@@ -218,6 +222,9 @@ const ProgressTracking: React.FC = () => {
             </ResponsiveContainer>
           )}
         </div>
+
+        {/* AI Insights Panel */}
+        <AIInsightsPanel />
 
         {/* Guest mode notice */}
         {isGuestMode && (

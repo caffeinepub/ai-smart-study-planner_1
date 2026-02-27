@@ -1,43 +1,33 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix theme colour selection and revision day motivational quote",
+  "title": "Replace Studiora logo with uploaded custom image",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix theme colour selector in Settings so selecting a theme preset applies the chosen colour theme, persists to localStorage, and visually indicates the active theme",
+      "summary": "Replace existing logo with uploaded custom image in Layout header and LoginPage",
       "acceptanceCriteria": [
-        "Selecting a theme preset in Settings immediately changes the app's colour scheme.",
-        "The selected theme is persisted to localStorage and restored on page reload.",
-        "The active theme preset is visually highlighted in the theme selector grid.",
-        "The useCustomTheme hook correctly applies CSS custom properties to the document root when a theme is selected."
+        "The uploaded image is saved as `frontend/public/assets/generated/studiora-logo.png`.",
+        "The sticky header in Layout.tsx renders the image as the Studiora logo (replacing any prior logo element).",
+        "The login/landing page (LoginPage.tsx) renders the same image as the app logo.",
+        "The logo image has appropriate alt text ('Studiora logo') and a sensible display size (e.g., h-8 or h-10 in the header, larger on the login page).",
+        "No broken image references or leftover old logo elements remain."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useCustomTheme.ts",
-          "operation": "modify",
-          "description": "Fix the useCustomTheme hook to correctly apply CSS custom properties from the selected theme preset to the document root (:root element) and ensure the theme is persisted to localStorage. The hook should watch for theme changes and immediately update document.documentElement.style with the preset's color values. Verify that the persisted theme is restored on mount."
+          "path": "frontend/public/assets/generated/studiora-logo.png",
+          "operation": "create",
+          "description": "Save the uploaded custom logo image (open book with green sprout and blue/purple circular background) as the new Studiora logo asset at this exact workspace path: `frontend/public/assets/generated/studiora-logo.png`."
         },
         {
-          "path": "frontend/src/components/ThemeSelectorSection.tsx",
+          "path": "frontend/src/components/Layout.tsx",
           "operation": "modify",
-          "description": "Update ThemeSelectorSection to read the currently selected theme from useCustomTheme and add visual indication (e.g., border highlight, checkmark icon, or active state styling) to the active theme preset in the grid. Ensure clicking a theme calls the hook's setter to trigger the theme application logic."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Fix the revision day screen to display actual revision tasks scheduled for today instead of a generic motivational quote",
-      "acceptanceCriteria": [
-        "The revision day screen does not display the text 'Spaced repetition boosts long-term retention by up to 80%.' or any other generic motivational quote.",
-        "The revision day screen displays the user's actual revision tasks or subjects scheduled for that day.",
-        "If no revision tasks exist for the day, an appropriate empty state is shown instead of a quote."
-      ],
-      "file_operations": [
+          "description": "Replace the current logo element in the sticky header with an <img> tag that references `/assets/generated/studiora-logo.png` as the src. Set appropriate alt text to 'Studiora logo' and apply a height class (h-8 or h-10) for proper sizing in the header. Remove any previous SVG-based or other logo implementations to avoid duplicates."
+        },
         {
-          "path": "frontend/src/pages/Dashboard.tsx",
+          "path": "frontend/src/pages/LoginPage.tsx",
           "operation": "modify",
-          "description": "Remove or conditionally hide the DailyMotivationCard or StudyTipCard when displaying today's tasks on a revision day. Instead, filter and display revision tasks (where isRevision is true) from the todayTasks array. If no revision tasks exist for the day, show an empty state message (e.g., 'No revision scheduled for today') rather than a motivational quote. Ensure the logic checks the isRevision flag on each DailyTask to identify revision days."
+          "description": "Replace the current logo element on the login/landing page with an <img> tag that references `/assets/generated/studiora-logo.png` as the src. Set appropriate alt text to 'Studiora logo' and apply a larger height class (e.g., h-16, h-20, or h-24) for prominent display on the landing page. Remove any previous SVG-based or other logo implementations to avoid duplicates."
         }
       ]
     }

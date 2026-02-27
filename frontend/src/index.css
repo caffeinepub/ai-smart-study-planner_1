@@ -108,9 +108,41 @@
     @apply border-border;
   }
 
+  html {
+    height: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    min-height: 100%;
+    position: relative;
+    background-color: oklch(0.97 0.006 264);
+  }
+
+  /* Background image layer — light mode */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url('/assets/generated/app-background.dim_1920x1080.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Subtle light overlay to keep the image soft and professional */
+    opacity: 0.18;
+  }
+
+  /* Background image layer — dark mode */
+  .dark body::before,
+  .dark body > *::before {
+    opacity: 0.10;
+  }
+
+  /* Ensure dark mode body has correct base color */
+  .dark body {
+    background-color: oklch(0.13 0.03 264);
   }
 }
 

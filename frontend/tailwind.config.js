@@ -110,7 +110,11 @@ export default {
         'progress-grow': {
           from: { width: '0%' },
           to: { width: '100%' }
-        }
+        },
+        'sway': {
+          '0%, 100%': { transform: 'rotate(-2deg)' },
+          '50%': { transform: 'rotate(2deg)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -118,6 +122,7 @@ export default {
         'fade-in': 'fade-in 0.25s ease-out',
         'slide-up': 'slide-up 0.3s ease-out',
         'scale-in': 'scale-in 0.2s ease-out',
+        'sway': 'sway 3.5s ease-in-out infinite',
       }
     }
   },

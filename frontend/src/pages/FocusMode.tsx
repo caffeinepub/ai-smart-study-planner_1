@@ -5,6 +5,7 @@ import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
 import { useGetCallerUserProfile } from '../hooks/useQueries';
 import { useFocusSessionHistory } from '../hooks/useFocusSessionHistory';
+import { useAmbientSound } from '../hooks/useAmbientSound';
 
 type Phase = 'work' | 'break';
 
@@ -24,6 +25,10 @@ export default function FocusMode() {
   const [workMinutes, setWorkMinutes] = useState(DEFAULT_WORK_MINUTES);
   const [breakMinutes, setBreakMinutes] = useState(DEFAULT_BREAK_MINUTES);
   const [selectedSound, setSelectedSound] = useState<AmbientSound>('none');
+
+  // Ambient sound playback — only active when premium and a sound is selected
+  const activeSound: AmbientSound = isPremium ? selectedSound : 'none';
+  useAmbientSound(activeSound);
 
   const [phase, setPhase] = useState<Phase>('work');
   const [timeLeft, setTimeLeft] = useState(workMinutes * 60);

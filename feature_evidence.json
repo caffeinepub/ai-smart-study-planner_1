@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-theme-colour-selector-in-settings-so-that-selecting-a-theme-preset-actually-applies-the-chosen-colour-theme-to-the-app-the-selected-theme-s-css-custom-properties-must-be-applied-to-the-document-root-and-persisted-to-localstorage-so-the-theme-survives-page-reloads-the-active-theme-must-be-visually-indicated-in-the-themeselectorsection-grid",
-      "featureTitle": "Fix the theme colour selector in Settings so that selecting a theme preset actually applies the chosen colour theme to the app. The selected theme's CSS custom properties must be applied to the document root and persisted to localStorage so the theme survives page reloads. The active theme must be visually indicated in the ThemeSelectorSection grid.",
+      "featureId": "feature-save-the-uploaded-image-open-book-with-green-sprout-and-blue-purple-circular-background-as-the-studiora-logo-asset-at-frontend-public-assets-generated-studiora-logo-png-and-use-it-as-the-logo-displayed-in-the-app-header-layout-tsx-and-on-the-login-landing-page-loginpage-tsx-replacing-any-previously-generated-or-svg-based-logo",
+      "featureTitle": "Save the uploaded image (open book with green sprout and blue/purple circular background) as the Studiora logo asset at `frontend/public/assets/generated/studiora-logo.png` and use it as the logo displayed in the app header (Layout.tsx) and on the login/landing page (LoginPage.tsx), replacing any previously generated or SVG-based logo.",
       "files": [
-        "frontend/src/components/ThemeSelectorSection.tsx",
-        "frontend/src/hooks/useCustomTheme.ts"
+        "frontend/src/components/Layout.tsx",
+        "frontend/src/pages/LoginPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,26 +19,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-fix-the-revision-day-screen-so-it-no-longer-shows-a-generic-motivational-quote-e-g-spaced-repetition-boosts-long-term-retention-by-up-to-80-on-a-revision-day-the-screen-must-display-content-relevant-to-the-user-s-scheduled-revision-tasks-such-as-the-list-of-topics-subjects-due-for-revision-today-rather-than-a-static-study-tip-or-motivational-quote",
-      "featureTitle": "Fix the revision day screen so it no longer shows a generic motivational quote (e.g. 'Spaced repetition boosts long-term retention by up to 80%.'). On a revision day, the screen must display content relevant to the user's scheduled revision tasks — such as the list of topics/subjects due for revision today — rather than a static study tip or motivational quote.",
-      "files": [
-        "frontend/src/pages/Dashboard.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }

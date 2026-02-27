@@ -34,25 +34,6 @@ actor {
     #premium;
   };
 
-  type PersistentUserProfile = {
-    name : Text;
-    userTier : UserTier;
-    guestMode : Bool;
-    deviceId : ?Text;
-
-    // Legacy fields
-    isPremium : Bool;
-    legacyPremiumFeatures : ?LegacyPremiumFeatures;
-  };
-
-  type LegacyPremiumFeatures = {
-    smartStudyInsights : Bool;
-    advancedStatistics : Bool;
-    unlimitedStudyPlans : Bool;
-    None : Bool;
-    AllOfTheAbove : Bool;
-  };
-
   public type UserProfile = {
     name : Text;
     userTier : UserTier;
@@ -60,28 +41,8 @@ actor {
     deviceId : ?Text;
   };
 
-  let userProfiles = Map.empty<Principal, PersistentUserProfile>();
-  let guestProfiles = Map.empty<Text, PersistentUserProfile>();
-
-  // ── Migration Helpers ─────────────────────────────────────────────────────
-
-  func mapUserTier(p : PersistentUserProfile) : PersistentUserProfile {
-    {
-      p with userTier = switch (p.isPremium) {
-        case (true) { #premium };
-        case (false) { #free };
-      };
-    };
-  };
-
-  func toUserProfile(p : PersistentUserProfile) : UserProfile {
-    {
-      name = p.name;
-      userTier = if (p.isPremium) { #premium } else { #free };
-      guestMode = p.guestMode;
-      deviceId = p.deviceId;
-    };
-  };
+  let userProfiles = Map.empty<Principal, UserProfile>();
+  let guestProfiles = Map.empty<Text, UserProfile>();
 
   // ── Feature Checking ──────────────────────────────────────────────────────
 
@@ -125,55 +86,34 @@ actor {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can get their profile");
     };
-    switch (userProfiles.get(caller)) {
-      case (null) { null };
-      case (?p) { ?toUserProfile(mapUserTier(p)) };
-    };
+    userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
     if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
-    switch (userProfiles.get(user)) {
-      case (null) { null };
-      case (?p) { ?toUserProfile(mapUserTier(p)) };
-    };
+    userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
-    let persistentProfile : PersistentUserProfile = {
-      name = profile.name;
-      userTier = profile.userTier;
-      guestMode = profile.guestMode;
-      deviceId = profile.deviceId;
-      // Legacy field handling
-      isPremium = profile.userTier == #premium;
-      legacyPremiumFeatures = null;
-    };
-    userProfiles.add(caller, persistentProfile);
+    userProfiles.add(caller, profile);
   };
 
   // Guest Profile Support
   public query ({ caller }) func getGuestProfile(deviceId : Text) : async ?UserProfile {
-    switch (guestProfiles.get(deviceId)) {
-      case (null) { null };
-      case (?p) { ?toUserProfile(mapUserTier(p)) };
-    };
+    guestProfiles.get(deviceId);
   };
 
   public shared ({ caller }) func createGuestProfile(deviceId : Text, name : Text) : async () {
-    let guestProfile : PersistentUserProfile = {
+    let guestProfile : UserProfile = {
       name;
       userTier = #free;
       guestMode = true;
       deviceId = ?deviceId;
-      // Legacy field handling
-      isPremium = false;
-      legacyPremiumFeatures = null;
     };
     guestProfiles.add(deviceId, guestProfile);
   };
@@ -186,13 +126,11 @@ actor {
       case (null) { Runtime.trap("User profile not found") };
       case (?profile) { profile };
     };
-    let updatedProfile : PersistentUserProfile = {
-      currentProfile with userTier = #premium;
+    let updatedProfile : UserProfile = {
+      name = currentProfile.name;
+      userTier = #premium;
       guestMode = false;
       deviceId = null;
-      // Legacy field handling
-      isPremium = true;
-      legacyPremiumFeatures = null;
     };
     userProfiles.add(caller, updatedProfile);
   };
