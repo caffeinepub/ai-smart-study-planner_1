@@ -10,6 +10,12 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface BackupData {
+  'backedUpAt' : bigint,
+  'exams' : Array<Exam>,
+  'trialState' : [] | [TrialState],
+  'userProfile' : [] | [UserProfile],
+}
 export interface DailyTask {
   'id' : bigint,
   'isCompleted' : boolean,
@@ -50,6 +56,11 @@ export interface ProgressData {
   'weeklyEntries' : Array<WeeklyProgressEntry>,
 }
 export interface Subject { 'name' : string, 'topics' : Array<string> }
+export interface TrialState {
+  'trialActive' : boolean,
+  'trialUsed' : boolean,
+  'trialStartTimestamp' : bigint,
+}
 export interface UserProfile {
   'userTier' : UserTier,
   'name' : string,
@@ -59,7 +70,8 @@ export interface UserProfile {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
-export type UserTier = { 'premium' : null } |
+export type UserTier = { 'trial' : null } |
+  { 'premium' : null } |
   { 'free' : null };
 export interface WeeklyProgressEntry {
   'totalTasks' : bigint,
@@ -96,10 +108,12 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'backupUserData' : ActorMethod<[], undefined>,
   'checkFeatureAccess' : ActorMethod<
     [PremiumFeature],
     { 'accessGranted' : boolean }
   >,
+  'checkGuestFeatureAccess' : ActorMethod<[string, PremiumFeature], boolean>,
   'createGuestProfile' : ActorMethod<[string, string], undefined>,
   'getAllExams' : ActorMethod<[], Array<Exam>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -108,12 +122,23 @@ export interface _SERVICE {
   'getGuestExams' : ActorMethod<[string], Array<Exam>>,
   'getGuestProfile' : ActorMethod<[string], [] | [UserProfile]>,
   'getGuestStudyStreak' : ActorMethod<[string, bigint], bigint>,
+  'getGuestTrialStatus' : ActorMethod<[string], boolean>,
   'getGuestWeeklyProgress' : ActorMethod<[string, bigint], ProgressData>,
+  'getGuestWeeklyStats' : ActorMethod<
+    [string],
+    { 'streak' : bigint, 'totalTasks' : bigint, 'completedTasks' : bigint }
+  >,
+  'getLatestBackup' : ActorMethod<[], [] | [BackupData]>,
   'getStudyStreak' : ActorMethod<[bigint], bigint>,
   'getTodayGuestTasks' : ActorMethod<[string, bigint], Array<DailyTask>>,
   'getTodayTasks' : ActorMethod<[bigint], Array<DailyTask>>,
+  'getTrialStatus' : ActorMethod<[], boolean>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getWeeklyProgress' : ActorMethod<[bigint], ProgressData>,
+  'getWeeklyStats' : ActorMethod<
+    [],
+    { 'streak' : bigint, 'totalTasks' : bigint, 'completedTasks' : bigint }
+  >,
   'hasFeatureAccess' : ActorMethod<[PremiumFeature], boolean>,
   'hasTierAccess' : ActorMethod<[UserTier], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
@@ -121,10 +146,14 @@ export interface _SERVICE {
   'markGuestTaskIncomplete' : ActorMethod<[string, bigint, bigint], undefined>,
   'markTaskComplete' : ActorMethod<[bigint, bigint], undefined>,
   'markTaskIncomplete' : ActorMethod<[bigint, bigint], undefined>,
+  'restoreUserData' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'startGuestTrial' : ActorMethod<[string], undefined>,
+  'startTrial' : ActorMethod<[], undefined>,
   'submitExamSetup' : ActorMethod<[ExamSetup], bigint>,
   'submitGuestExamSetup' : ActorMethod<[string, ExamSetup], bigint>,
-  'upgradeToPremium' : ActorMethod<[], undefined>,
+  'upgradeGuestToPremium' : ActorMethod<[string], undefined>,
+  'upgradeToPremium' : ActorMethod<[Principal], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

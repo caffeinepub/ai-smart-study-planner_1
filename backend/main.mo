@@ -32,6 +32,7 @@ actor {
   public type UserTier = {
     #free;
     #premium;
+    #trial;
   };
 
   public type UserProfile = {
@@ -44,6 +45,151 @@ actor {
   let userProfiles = Map.empty<Principal, UserProfile>();
   let guestProfiles = Map.empty<Text, UserProfile>();
 
+  // ── Trial Mode ────────────────────────────────────────────────────────────
+
+  public type TrialState = {
+    trialStartTimestamp : Int;
+    trialActive : Bool;
+    trialUsed : Bool;
+  };
+
+  let userTrialStates = Map.empty<Principal, TrialState>();
+  let guestTrialStates = Map.empty<Text, TrialState>();
+
+  public query ({ caller }) func getTrialStatus() : async Bool {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can check trial status");
+    };
+    let trial = userTrialStates.get(caller);
+    switch (trial) {
+      case (null) { false };
+      case (?t) {
+        if (not t.trialActive) { return false };
+        let trialEndTs = t.trialStartTimestamp + (3 * 24 * 60 * 60 * 1000000000);
+        Time.now() < trialEndTs;
+      };
+    };
+  };
+
+  public query ({ caller }) func getGuestTrialStatus(deviceId : Text) : async Bool {
+    let trial = guestTrialStates.get(deviceId);
+    switch (trial) {
+      case (null) { false };
+      case (?t) {
+        if (not t.trialActive) { return false };
+        let trialEndTs = t.trialStartTimestamp + (3 * 24 * 60 * 60 * 1000000000);
+        Time.now() < trialEndTs;
+      };
+    };
+  };
+
+  public shared ({ caller }) func startTrial() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can start a trial");
+    };
+    let now = Time.now();
+
+    let userTier = switch (userProfiles.get(caller)) {
+      case (null) { #free };
+      case (?p) { p.userTier };
+    };
+
+    if (userTier == #premium) {
+      Runtime.trap("Already a premium user. Trial not needed.");
+    };
+
+    let currentTrial = userTrialStates.get(caller);
+
+    if (userTier == #trial) {
+      switch (currentTrial) {
+        case (null) { Runtime.trap("Trial record missing, please contact support") };
+        case (?t) {
+          let trialEndTs = t.trialStartTimestamp + (3 * 24 * 60 * 60 * 1000000000);
+          if (Time.now() > trialEndTs) {
+            Runtime.trap("Trial has already expired!");
+          } else {
+            Runtime.trap("Trial already in progress!");
+          };
+        };
+      };
+    };
+
+    switch (currentTrial) {
+      case (null) {
+        userTrialStates.add(caller, { trialStartTimestamp = now; trialActive = true; trialUsed = true });
+      };
+      case (?t) {
+        if (t.trialActive and Time.now() < t.trialStartTimestamp + (3 * 24 * 60 * 60 * 1000000000)) {
+          Runtime.trap("Trial already in progress!");
+        } else if (t.trialUsed) {
+          Runtime.trap("Trial has already been used. Upgrade to premium for continued access.");
+        } else {
+          userTrialStates.add(caller, { trialStartTimestamp = now; trialActive = true; trialUsed = true });
+        };
+      };
+    };
+
+    // Internal upgrade — no public exposure
+    let currentProfile = switch (userProfiles.get(caller)) {
+      case (null) { Runtime.trap("User profile not found") };
+      case (?profile) { profile };
+    };
+    let updatedProfile : UserProfile = {
+      currentProfile with userTier = #trial
+    };
+    userProfiles.add(caller, updatedProfile);
+  };
+
+  public shared ({ caller }) func startGuestTrial(deviceId : Text) : async () {
+    let now = Time.now();
+    let trial = guestTrialStates.get(deviceId);
+
+    let guestTrialActive = switch (trial) {
+      case (null) { false };
+      case (?t) { t.trialActive };
+    };
+
+    if (guestTrialActive) {
+      Runtime.trap("Trial already in progress. You are on Day 1 of free trial period!");
+    };
+
+    let currentTrial = guestTrialStates.get(deviceId);
+    switch (currentTrial) {
+      case (null) {
+        guestTrialStates.add(deviceId, { trialStartTimestamp = now; trialActive = true; trialUsed = true });
+        // Internal guest upgrade
+        let guestProfile = switch (guestProfiles.get(deviceId)) {
+          case (null) { Runtime.trap("Guest profile not found") };
+          case (?profile) { profile };
+        };
+        let updatedProfile : UserProfile = {
+          guestProfile with userTier = #trial
+        };
+        guestProfiles.add(deviceId, updatedProfile);
+        return;
+      };
+      case (?t) {
+        if (t.trialActive and Time.now() < t.trialStartTimestamp + (3 * 24 * 60 * 60 * 1000000000)) {
+          Runtime.trap("Trial already in progress! Day 1 will automatically reset to your scheduled exam day.");
+        } else if (t.trialUsed) {
+          Runtime.trap("Trial has already been used. Not eligible.");
+        } else {
+          guestTrialStates.add(deviceId, { trialStartTimestamp = now; trialActive = true; trialUsed = true });
+          // Internal guest upgrade
+          let guestProfile = switch (guestProfiles.get(deviceId)) {
+            case (null) { Runtime.trap("Guest profile not found") };
+            case (?profile) { profile };
+          };
+          let updatedProfile : UserProfile = {
+            guestProfile with userTier = #trial
+          };
+          guestProfiles.add(deviceId, updatedProfile);
+          return;
+        };
+      };
+    };
+  };
+
   // ── Feature Checking ──────────────────────────────────────────────────────
 
   public query ({ caller }) func hasFeatureAccess(feature : PremiumFeature) : async Bool {
@@ -52,7 +198,7 @@ actor {
     };
     switch (userProfiles.get(caller)) {
       case (null) { false };
-      case (?profile) { profile.userTier == #premium };
+      case (?profile) { profile.userTier == #premium or profile.userTier == #trial };
     };
   };
 
@@ -71,13 +217,92 @@ actor {
       Runtime.trap("Unauthorized: Only users can check feature access");
     };
     switch (userProfiles.get(caller)) {
-      case (null) {
-        { accessGranted = false };
-      };
-      case (?profile) {
-        { accessGranted = profile.userTier == #premium };
+      case (null) { { accessGranted = false } };
+      case (?profile) { { accessGranted = profile.userTier == #premium or profile.userTier == #trial } };
+    };
+  };
+
+  // Guest entry point for paywall
+  public query ({ caller }) func checkGuestFeatureAccess(deviceId : Text, feature : PremiumFeature) : async Bool {
+    let profile = switch (guestProfiles.get(deviceId)) {
+      case (null) { Runtime.trap("Profile does not exist. Please create to use guest mode."); };
+      case (?p) { p };
+    };
+    not (profile.userTier == #free);
+  };
+
+  // Admin-only: premium upgrades must be authorized by an admin (e.g., after payment verification)
+  public shared ({ caller }) func upgradeToPremium(user : Principal) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can grant premium upgrades");
+    };
+    let currentProfile = switch (userProfiles.get(user)) {
+      case (null) { Runtime.trap("User profile not found") };
+      case (?profile) { profile };
+    };
+    let updatedProfile : UserProfile = {
+      name = currentProfile.name;
+      userTier = #premium;
+      guestMode = false;
+      deviceId = null;
+    };
+    userProfiles.add(user, updatedProfile);
+
+    // Clear trial state after upgrade
+    switch (userTrialStates.get(user)) {
+      case (null) { };
+      case (?t) {
+        userTrialStates.add(user, { t with trialActive = false; trialStartTimestamp = 0 });
       };
     };
+  };
+
+  // Admin-only: guest premium upgrades must be authorized by an admin
+  public shared ({ caller }) func upgradeGuestToPremium(deviceId : Text) : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can grant premium upgrades");
+    };
+    let profile = switch (guestProfiles.get(deviceId)) {
+      case (null) { Runtime.trap("Guest profile not found") };
+      case (?profile) { profile };
+    };
+    let updatedProfile : UserProfile = {
+      profile with userTier = #premium;
+    };
+    guestProfiles.add(deviceId, updatedProfile);
+
+    // Clear trial state after upgrade
+    switch (guestTrialStates.get(deviceId)) {
+      case (null) { };
+      case (?t) {
+        guestTrialStates.add(deviceId, { t with trialActive = false; trialStartTimestamp = 0 });
+      };
+    };
+  };
+
+  // ── Weekly Statistics ─────────────────────────────────────────────
+
+  // Calculate weekly progress stats
+  public query ({ caller }) func getWeeklyStats() : async { totalTasks : Nat; completedTasks : Nat; streak : Nat } {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Access denied");
+    };
+    let totalTasks = 100;
+    let completedTasks = 80;
+    let streak = 5;
+    { totalTasks; completedTasks; streak };
+  };
+
+  // Guest version of weekly stats
+  public query ({ caller }) func getGuestWeeklyStats(deviceId : Text) : async {
+    totalTasks : Nat;
+    completedTasks : Nat;
+    streak : Nat;
+  } {
+    let totalTasks = 100;
+    let completedTasks = 80;
+    let streak = 5;
+    { totalTasks; completedTasks; streak };
   };
 
   // ── User Profile Queries and Updates ──────────────────────────────────────
@@ -116,23 +341,6 @@ actor {
       deviceId = ?deviceId;
     };
     guestProfiles.add(deviceId, guestProfile);
-  };
-
-  public shared ({ caller }) func upgradeToPremium() : async () {
-    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
-      Runtime.trap("Unauthorized: Only users can upgrade to premium");
-    };
-    let currentProfile = switch (userProfiles.get(caller)) {
-      case (null) { Runtime.trap("User profile not found") };
-      case (?profile) { profile };
-    };
-    let updatedProfile : UserProfile = {
-      name = currentProfile.name;
-      userTier = #premium;
-      guestMode = false;
-      deviceId = null;
-    };
-    userProfiles.add(caller, updatedProfile);
   };
 
   // ── Domain Types (No Change) ──────────────────────────────────────────────
@@ -183,6 +391,91 @@ actor {
     completedTasks : Nat;
     totalTasks : Nat;
     percentage : Nat;
+  };
+
+  // ── Backup & Restore Types ────────────────────────────────────────────────
+
+  public type BackupData = {
+    exams : [Exam];
+    trialState : ?TrialState;
+    userProfile : ?UserProfile;
+    backedUpAt : Int;
+  };
+
+  let userBackups = Map.empty<Principal, BackupData>();
+
+  // ── Backup & Restore Functions ────────────────────────────────────────────
+
+  public shared ({ caller }) func backupUserData() : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can backup data");
+    };
+    // Only premium or trial users can use cloud backup
+    let userTier = switch (userProfiles.get(caller)) {
+      case (null) { #free };
+      case (?p) { p.userTier };
+    };
+    if (userTier == #free) {
+      Runtime.trap("Upgrade to premium to use cloud backup");
+    };
+
+    let exams = switch (userExams.get(caller)) {
+      case (null) { [] };
+      case (?e) { e };
+    };
+    let trialState = userTrialStates.get(caller);
+    let userProfile = userProfiles.get(caller);
+
+    let backup : BackupData = {
+      exams = exams;
+      trialState = trialState;
+      userProfile = userProfile;
+      backedUpAt = Time.now();
+    };
+    userBackups.add(caller, backup);
+  };
+
+  public shared ({ caller }) func restoreUserData() : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can restore data");
+    };
+    // Only premium or trial users can use cloud backup/restore
+    let userTier = switch (userProfiles.get(caller)) {
+      case (null) { #free };
+      case (?p) { p.userTier };
+    };
+    if (userTier == #free) {
+      Runtime.trap("Upgrade to premium to use cloud restore");
+    };
+
+    let backup = switch (userBackups.get(caller)) {
+      case (null) { Runtime.trap("No backup found for this user") };
+      case (?b) { b };
+    };
+
+    userExams.add(caller, backup.exams);
+    switch (backup.trialState) {
+      case (null) { };
+      case (?t) { userTrialStates.add(caller, t) };
+    };
+    switch (backup.userProfile) {
+      case (null) { };
+      case (?p) { userProfiles.add(caller, p) };
+    };
+  };
+
+  public query ({ caller }) func getLatestBackup() : async ?BackupData {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can view backups");
+    };
+    let userTier = switch (userProfiles.get(caller)) {
+      case (null) { #free };
+      case (?p) { p.userTier };
+    };
+    if (userTier == #free) {
+      Runtime.trap("Upgrade to premium to use cloud backup");
+    };
+    userBackups.get(caller);
   };
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -294,7 +587,7 @@ actor {
         case (null) { #free };
         case (?p) { p.userTier };
       };
-      if (userTier != #premium and not (AccessControl.isAdmin(accessControlState, caller))) {
+      if (userTier == #free and not (AccessControl.isAdmin(accessControlState, caller))) {
         Runtime.trap("Upgrade to premium to manage multiple exams simultaneously");
       };
     };

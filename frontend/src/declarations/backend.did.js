@@ -59,6 +59,7 @@ export const Exam = IDL.Record({
   'setup' : ExamSetup,
 });
 export const UserTier = IDL.Variant({
+  'trial' : IDL.Null,
   'premium' : IDL.Null,
   'free' : IDL.Null,
 });
@@ -83,6 +84,17 @@ export const ProgressData = IDL.Record({
   'studyStreak' : IDL.Nat,
   'totalPending' : IDL.Nat,
   'weeklyEntries' : IDL.Vec(WeeklyProgressEntry),
+});
+export const TrialState = IDL.Record({
+  'trialActive' : IDL.Bool,
+  'trialUsed' : IDL.Bool,
+  'trialStartTimestamp' : IDL.Int,
+});
+export const BackupData = IDL.Record({
+  'backedUpAt' : IDL.Int,
+  'exams' : IDL.Vec(Exam),
+  'trialState' : IDL.Opt(TrialState),
+  'userProfile' : IDL.Opt(UserProfile),
 });
 
 export const idlService = IDL.Service({
@@ -115,9 +127,15 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'assignUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'backupUserData' : IDL.Func([], [], []),
   'checkFeatureAccess' : IDL.Func(
       [PremiumFeature],
       [IDL.Record({ 'accessGranted' : IDL.Bool })],
+      ['query'],
+    ),
+  'checkGuestFeatureAccess' : IDL.Func(
+      [IDL.Text, PremiumFeature],
+      [IDL.Bool],
       ['query'],
     ),
   'createGuestProfile' : IDL.Func([IDL.Text, IDL.Text], [], []),
@@ -128,11 +146,24 @@ export const idlService = IDL.Service({
   'getGuestExams' : IDL.Func([IDL.Text], [IDL.Vec(Exam)], ['query']),
   'getGuestProfile' : IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
   'getGuestStudyStreak' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Nat], ['query']),
+  'getGuestTrialStatus' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'getGuestWeeklyProgress' : IDL.Func(
       [IDL.Text, IDL.Nat],
       [ProgressData],
       ['query'],
     ),
+  'getGuestWeeklyStats' : IDL.Func(
+      [IDL.Text],
+      [
+        IDL.Record({
+          'streak' : IDL.Nat,
+          'totalTasks' : IDL.Nat,
+          'completedTasks' : IDL.Nat,
+        }),
+      ],
+      ['query'],
+    ),
+  'getLatestBackup' : IDL.Func([], [IDL.Opt(BackupData)], ['query']),
   'getStudyStreak' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
   'getTodayGuestTasks' : IDL.Func(
       [IDL.Text, IDL.Nat],
@@ -140,12 +171,24 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getTodayTasks' : IDL.Func([IDL.Nat], [IDL.Vec(DailyTask)], ['query']),
+  'getTrialStatus' : IDL.Func([], [IDL.Bool], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
   'getWeeklyProgress' : IDL.Func([IDL.Nat], [ProgressData], ['query']),
+  'getWeeklyStats' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'streak' : IDL.Nat,
+          'totalTasks' : IDL.Nat,
+          'completedTasks' : IDL.Nat,
+        }),
+      ],
+      ['query'],
+    ),
   'hasFeatureAccess' : IDL.Func([PremiumFeature], [IDL.Bool], ['query']),
   'hasTierAccess' : IDL.Func([UserTier], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
@@ -153,10 +196,14 @@ export const idlService = IDL.Service({
   'markGuestTaskIncomplete' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [], []),
   'markTaskComplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
   'markTaskIncomplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+  'restoreUserData' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'startGuestTrial' : IDL.Func([IDL.Text], [], []),
+  'startTrial' : IDL.Func([], [], []),
   'submitExamSetup' : IDL.Func([ExamSetup], [IDL.Nat], []),
   'submitGuestExamSetup' : IDL.Func([IDL.Text, ExamSetup], [IDL.Nat], []),
-  'upgradeToPremium' : IDL.Func([], [], []),
+  'upgradeGuestToPremium' : IDL.Func([IDL.Text], [], []),
+  'upgradeToPremium' : IDL.Func([IDL.Principal], [], []),
 });
 
 export const idlInitArgs = [];
@@ -212,7 +259,11 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : IDL.Int,
     'setup' : ExamSetup,
   });
-  const UserTier = IDL.Variant({ 'premium' : IDL.Null, 'free' : IDL.Null });
+  const UserTier = IDL.Variant({
+    'trial' : IDL.Null,
+    'premium' : IDL.Null,
+    'free' : IDL.Null,
+  });
   const UserProfile = IDL.Record({
     'userTier' : UserTier,
     'name' : IDL.Text,
@@ -234,6 +285,17 @@ export const idlFactory = ({ IDL }) => {
     'studyStreak' : IDL.Nat,
     'totalPending' : IDL.Nat,
     'weeklyEntries' : IDL.Vec(WeeklyProgressEntry),
+  });
+  const TrialState = IDL.Record({
+    'trialActive' : IDL.Bool,
+    'trialUsed' : IDL.Bool,
+    'trialStartTimestamp' : IDL.Int,
+  });
+  const BackupData = IDL.Record({
+    'backedUpAt' : IDL.Int,
+    'exams' : IDL.Vec(Exam),
+    'trialState' : IDL.Opt(TrialState),
+    'userProfile' : IDL.Opt(UserProfile),
   });
   
   return IDL.Service({
@@ -266,9 +328,15 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'assignUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'backupUserData' : IDL.Func([], [], []),
     'checkFeatureAccess' : IDL.Func(
         [PremiumFeature],
         [IDL.Record({ 'accessGranted' : IDL.Bool })],
+        ['query'],
+      ),
+    'checkGuestFeatureAccess' : IDL.Func(
+        [IDL.Text, PremiumFeature],
+        [IDL.Bool],
         ['query'],
       ),
     'createGuestProfile' : IDL.Func([IDL.Text, IDL.Text], [], []),
@@ -279,11 +347,24 @@ export const idlFactory = ({ IDL }) => {
     'getGuestExams' : IDL.Func([IDL.Text], [IDL.Vec(Exam)], ['query']),
     'getGuestProfile' : IDL.Func([IDL.Text], [IDL.Opt(UserProfile)], ['query']),
     'getGuestStudyStreak' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Nat], ['query']),
+    'getGuestTrialStatus' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'getGuestWeeklyProgress' : IDL.Func(
         [IDL.Text, IDL.Nat],
         [ProgressData],
         ['query'],
       ),
+    'getGuestWeeklyStats' : IDL.Func(
+        [IDL.Text],
+        [
+          IDL.Record({
+            'streak' : IDL.Nat,
+            'totalTasks' : IDL.Nat,
+            'completedTasks' : IDL.Nat,
+          }),
+        ],
+        ['query'],
+      ),
+    'getLatestBackup' : IDL.Func([], [IDL.Opt(BackupData)], ['query']),
     'getStudyStreak' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
     'getTodayGuestTasks' : IDL.Func(
         [IDL.Text, IDL.Nat],
@@ -291,12 +372,24 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getTodayTasks' : IDL.Func([IDL.Nat], [IDL.Vec(DailyTask)], ['query']),
+    'getTrialStatus' : IDL.Func([], [IDL.Bool], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
     'getWeeklyProgress' : IDL.Func([IDL.Nat], [ProgressData], ['query']),
+    'getWeeklyStats' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'streak' : IDL.Nat,
+            'totalTasks' : IDL.Nat,
+            'completedTasks' : IDL.Nat,
+          }),
+        ],
+        ['query'],
+      ),
     'hasFeatureAccess' : IDL.Func([PremiumFeature], [IDL.Bool], ['query']),
     'hasTierAccess' : IDL.Func([UserTier], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
@@ -304,10 +397,14 @@ export const idlFactory = ({ IDL }) => {
     'markGuestTaskIncomplete' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [], []),
     'markTaskComplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
     'markTaskIncomplete' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+    'restoreUserData' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'startGuestTrial' : IDL.Func([IDL.Text], [], []),
+    'startTrial' : IDL.Func([], [], []),
     'submitExamSetup' : IDL.Func([ExamSetup], [IDL.Nat], []),
     'submitGuestExamSetup' : IDL.Func([IDL.Text, ExamSetup], [IDL.Nat], []),
-    'upgradeToPremium' : IDL.Func([], [], []),
+    'upgradeGuestToPremium' : IDL.Func([IDL.Text], [], []),
+    'upgradeToPremium' : IDL.Func([IDL.Principal], [], []),
   });
 };
 

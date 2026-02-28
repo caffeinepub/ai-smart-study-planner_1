@@ -1,37 +1,107 @@
 {
   "kind": "build_request",
-  "title": "Replace Studiora logo with uploaded custom image",
+  "title": "Implement Cloud Backup & Restore (Backup & Restore Settings Section)",
   "projectName": "Studiora",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Save the uploaded image (open book with green sprout and blue/purple circular background) as the Studiora logo asset at `frontend/public/assets/generated/studiora-logo.png` and use it as the logo displayed in the app header (Layout.tsx) and on the login/landing page (LoginPage.tsx), replacing any previously generated or SVG-based logo.",
+      "text": "Implement a `createBackup` utility function that collects all user data into a single JSON object and triggers a file download named `studiora_backup.json`. Data to include: study plans and tasks (from useQueries/localStorage guest store), daily progress (useLocalDailyProgress), study streak (useLocalStreak), companion growth state (useStudyCompanion / localStorage), app settings (theme from useTheme, custom theme from useCustomTheme, subscription tier from useSubscription). After constructing the Blob, invoke the Web Share API (`navigator.share` with the file) if available so the device share sheet appears, allowing the user to save to Google Drive, iCloud Drive, Dropbox, OneDrive, or device storage; fall back to a programmatic anchor-click download if the Share API is unavailable. No data must be sent to any backend server.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-4"
         ],
         "quotes": [
-          "Use this image as studiora logo."
+          "Create a backup feature that exports user data as a file.",
+          "Export backup as a JSON file: filename format: studiora_backup.json",
+          "After backup creation: Open the device share menu."
         ]
       },
       "acceptanceCriteria": [
-        "The uploaded image is saved as `frontend/public/assets/generated/studiora-logo.png`.",
-        "The sticky header in Layout.tsx renders the image as the Studiora logo (replacing any prior logo element).",
-        "The login/landing page (LoginPage.tsx) renders the same image as the app logo.",
-        "The logo image has appropriate alt text ('Studiora logo') and a sensible display size (e.g., h-8 or h-10 in the header, larger on the login page).",
-        "No broken image references or leftover old logo elements remain."
+        "Clicking 'Backup to Cloud' produces a valid studiora_backup.json file containing study plans, tasks, streak, companion state, and settings.",
+        "On supported browsers/devices the native share sheet opens with the file attached.",
+        "On browsers without Web Share API support the file downloads directly.",
+        "No HTTP request is made to the backend during backup."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Implement a `restoreBackup` utility function that opens a hidden `<input type='file' accept='.json'>` element via programmatic click to let the user pick a backup file from local storage or a cloud-synced folder. After the user selects a file, parse the JSON, validate its structure, show a confirmation dialog with the message 'Restoring will replace current data. Continue?', and on confirmation write all fields back to localStorage (study plans, tasks, streak, companion state, settings) and reload or refresh all relevant React Query caches so the full app state is restored. Show an error toast if the file is malformed or missing required fields.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Add restore feature allowing user to select a backup file.",
+          "Use device file picker to choose backup from local or cloud storage.",
+          "Before restoring: Show confirmation dialog: 'Restoring will replace current data. Continue?'"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Clicking 'Restore from Backup' opens the system file picker filtered to .json files.",
+        "A confirmation dialog appears before any data is overwritten.",
+        "After confirmation all app state (tasks, streak, companion, settings) reflects the backup data.",
+        "Invalid or corrupt files show a user-friendly error message and leave existing data untouched."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add a 'Backup & Restore' section to the Settings page (`frontend/src/pages/Settings.tsx`) positioned as a clearly labelled card. The section must display: a ☁️ heading 'Backup & Restore', a 'Last Backup:' line showing a formatted date/time string stored in localStorage after each successful backup or 'Never' if no backup has been made, a 'Backup to Cloud' button, a 'Restore from Backup' button, and the informational text: 'Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.' After a successful backup update the stored timestamp and display the success message 'Backup Successful — Saved to your cloud storage.' with a subtle fade-in / checkmark animation lasting ~1.5 s. The section must maintain the existing calm and minimal visual style of the Settings page.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Create section: Settings → Backup & Restore",
+          "Last Backup: [date/time or 'Never']",
+          "Show last backup timestamp after successful backup.",
+          "Display success message: 'Backup Successful — Saved to your cloud storage.'"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Settings page contains a 'Backup & Restore' section with the ☁️ icon.",
+        "'Last Backup' shows a formatted timestamp after first backup and 'Never' before any backup.",
+        "Success message and animation appear for ~1.5 s after a backup completes.",
+        "Informational privacy text is visible below the buttons.",
+        "The section matches the calm, minimal visual language of the rest of Settings."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Gate the entire Backup & Restore section behind premium status using the existing `isPremium` check from `frontend/src/utils/premiumCheck.ts`. Free-tier users must see the section heading and a lock indicator (🔒) with an upgrade prompt message (e.g., 'Cloud Backup is a Premium feature. Upgrade to back up your data.') and the 'Backup to Cloud' / 'Restore from Backup' buttons must be disabled or replaced by an UpgradePrompt component. Premium users see the fully functional section. Trial users should also have access.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "Cloud Backup is a Premium feature.",
+          "Free users see lock indicator with upgrade message.",
+          "Premium users can fully access Backup & Restore."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Free users see a lock indicator and upgrade message instead of functional backup buttons.",
+        "Premium and trial users see fully functional Backup and Restore buttons.",
+        "Clicking the upgrade prompt opens the PaywallScreen modal."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/ that are listed as immutable.",
-    "Do not alter backend logic."
+    "No user data may be stored on the app's backend servers during backup or restore.",
+    "Login must not be required to use backup or restore.",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "All localStorage key names used for backup/restore must not conflict with existing keys used by other hooks."
   ],
   "nonGoals": [
-    "Changing the app color theme or any other branding elements beyond the logo.",
-    "Modifying backend code."
+    "App-hosted or server-side cloud storage.",
+    "Automatic scheduled backups.",
+    "Backup encryption or password protection.",
+    "Versioned backup history (only the latest backup timestamp is tracked).",
+    "Backend schema changes or new Motoko endpoints for backup data."
   ],
   "imageRequirements": {
     "required": [],

@@ -10,7 +10,7 @@ import {
 import { useInternetIdentity } from './hooks/useInternetIdentity';
 import { useGuestMode } from './hooks/useGuestMode';
 import { useGetCallerUserProfile } from './hooks/useQueries';
-import { SubscriptionProvider } from './contexts/SubscriptionContext';
+import { SubscriptionProviderComponent } from './contexts/SubscriptionContext';
 import Layout from './components/Layout';
 import ProfileSetupModal from './components/ProfileSetupModal';
 import LoginPage from './pages/LoginPage';
@@ -151,8 +151,8 @@ declare module '@tanstack/react-router' {
 
 export default function App() {
   return (
-    <SubscriptionProvider>
+    <SubscriptionProviderComponent>
       <RouterProvider router={router} />
-    </SubscriptionProvider>
+    </SubscriptionProviderComponent>
   );
 }

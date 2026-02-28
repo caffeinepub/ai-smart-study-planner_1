@@ -20,7 +20,6 @@ interface Insight {
 function computeStaticInsights(tasks: DailyTask[], allTasks: DailyTask[]): Insight[] {
   const insights: Insight[] = [];
 
-  // Insight 1: Completion rate today
   const totalToday = tasks.length;
   const completedToday = tasks.filter((t) => t.isCompleted).length;
   const completionRate = totalToday > 0 ? Math.round((completedToday / totalToday) * 100) : 0;
@@ -43,7 +42,6 @@ function computeStaticInsights(tasks: DailyTask[], allTasks: DailyTask[]): Insig
     }
   }
 
-  // Insight 2: Subject weakness detection
   const subjectStats: Record<string, { total: number; completed: number }> = {};
   for (const task of allTasks) {
     if (!subjectStats[task.subjectName]) {
@@ -66,7 +64,6 @@ function computeStaticInsights(tasks: DailyTask[], allTasks: DailyTask[]): Insig
     });
   }
 
-  // Insight 3: Revision tasks
   const revisionTasks = tasks.filter((t) => t.isRevision && !t.isCompleted);
   if (revisionTasks.length > 0) {
     insights.push({
@@ -77,7 +74,6 @@ function computeStaticInsights(tasks: DailyTask[], allTasks: DailyTask[]): Insig
     });
   }
 
-  // Insight 4: Best study time suggestion
   if (insights.length < 2) {
     insights.push({
       icon: <Clock className="w-4 h-4" />,
@@ -96,10 +92,8 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
   const { isPremium, isLoading: premiumLoading } = useConsolidatedPremiumStatus();
   const aiInsights = useAIInsights();
 
-  // Prefer AI insights when available; fall back to static computation
   const staticInsights = computeStaticInsights(tasks, allTasks.length > 0 ? allTasks : tasks);
 
-  // Map AI insights to the local Insight format for display
   const aiMappedInsights: Insight[] = aiInsights.slice(0, 3).map((ins) => ({
     icon: ins.type === 'warning'
       ? <AlertTriangle className="w-4 h-4" />
@@ -147,7 +141,6 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
     return (
       <>
         <div className="glass-card rounded-2xl overflow-hidden">
-          {/* Teaser header */}
           <div className="p-4 flex items-center gap-3 border-b border-white/10 dark:border-white/6">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
               <Brain className="w-4 h-4 text-primary" />
@@ -162,7 +155,6 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
             </div>
           </div>
 
-          {/* Blurred teaser */}
           <div className="relative p-4 space-y-2.5">
             <div className="absolute inset-0 backdrop-blur-[2px] bg-background/40 z-10 flex flex-col items-center justify-center gap-3 rounded-b-2xl">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -182,7 +174,6 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
                 Upgrade to Premium
               </button>
             </div>
-            {/* Ghost items behind blur */}
             {[1, 2].map((i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border">
                 <div className="w-7 h-7 rounded-lg bg-muted shrink-0" />
@@ -195,7 +186,9 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
           </div>
         </div>
 
-        <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+        {showPaywall && (
+          <PaywallScreen onClose={() => setShowPaywall(false)} featureName="Smart Study Insights" />
+        )}
       </>
     );
   }

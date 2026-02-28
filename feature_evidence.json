@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-save-the-uploaded-image-open-book-with-green-sprout-and-blue-purple-circular-background-as-the-studiora-logo-asset-at-frontend-public-assets-generated-studiora-logo-png-and-use-it-as-the-logo-displayed-in-the-app-header-layout-tsx-and-on-the-login-landing-page-loginpage-tsx-replacing-any-previously-generated-or-svg-based-logo",
-      "featureTitle": "Save the uploaded image (open book with green sprout and blue/purple circular background) as the Studiora logo asset at `frontend/public/assets/generated/studiora-logo.png` and use it as the logo displayed in the app header (Layout.tsx) and on the login/landing page (LoginPage.tsx), replacing any previously generated or SVG-based logo.",
+      "featureId": "feature-implement-a-createbackup-utility-function-that-collects-all-user-data-into-a-single-json-object-and-triggers-a-file-download-named-studiora-backup-json-data-to-include-study-plans-and-tasks-from-usequeries-localstorage-guest-store-daily-progress-uselocaldailyprogress-study-streak-uselocalstreak-companion-growth-state-usestudycompanion-localstorage-app-settings-theme-from-usetheme-custom-theme-from-usecustomtheme-subscription-tier-from-usesubscription-after-constructing-the-blob-invoke-the-web-share-api-navigator-share-with-the-file-if-available-so-the-device-share-sheet-appears-allowing-the-user-to-save-to-google-drive-icloud-drive-dropbox-onedrive-or-device-storage-fall-back-to-a-programmatic-anchor-click-download-if-the-share-api-is-unavailable-no-data-must-be-sent-to-any-backend-server",
+      "featureTitle": "Implement a `createBackup` utility function that collects all user data into a single JSON object and triggers a file download named `studiora_backup.json`. Data to include: study plans and tasks (from useQueries/localStorage guest store), daily progress (useLocalDailyProgress), study streak (useLocalStreak), companion growth state (useStudyCompanion / localStorage), app settings (theme from useTheme, custom theme from useCustomTheme, subscription tier from useSubscription). After constructing the Blob, invoke the Web Share API (`navigator.share` with the file) if available so the device share sheet appears, allowing the user to save to Google Drive, iCloud Drive, Dropbox, OneDrive, or device storage; fall back to a programmatic anchor-click download if the Share API is unavailable. No data must be sent to any backend server.",
       "files": [
-        "frontend/src/components/Layout.tsx",
-        "frontend/src/pages/LoginPage.tsx"
+        "frontend/src/utils/backup.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -19,6 +18,67 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-a-restorebackup-utility-function-that-opens-a-hidden-input-type-file-accept-json-element-via-programmatic-click-to-let-the-user-pick-a-backup-file-from-local-storage-or-a-cloud-synced-folder-after-the-user-selects-a-file-parse-the-json-validate-its-structure-show-a-confirmation-dialog-with-the-message-restoring-will-replace-current-data-continue-and-on-confirmation-write-all-fields-back-to-localstorage-study-plans-tasks-streak-companion-state-settings-and-reload-or-refresh-all-relevant-react-query-caches-so-the-full-app-state-is-restored-show-an-error-toast-if-the-file-is-malformed-or-missing-required-fields",
+      "featureTitle": "Implement a `restoreBackup` utility function that opens a hidden `<input type='file' accept='.json'>` element via programmatic click to let the user pick a backup file from local storage or a cloud-synced folder. After the user selects a file, parse the JSON, validate its structure, show a confirmation dialog with the message 'Restoring will replace current data. Continue?', and on confirmation write all fields back to localStorage (study plans, tasks, streak, companion state, settings) and reload or refresh all relevant React Query caches so the full app state is restored. Show an error toast if the file is malformed or missing required fields.",
+      "files": [
+        "frontend/src/utils/backup.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-backup-restore-section-to-the-settings-page-frontend-src-pages-settings-tsx-positioned-as-a-clearly-labelled-card-the-section-must-display-a-heading-backup-restore-a-last-backup-line-showing-a-formatted-date-time-string-stored-in-localstorage-after-each-successful-backup-or-never-if-no-backup-has-been-made-a-backup-to-cloud-button-a-restore-from-backup-button-and-the-informational-text-your-backup-file-stays-in-your-personal-cloud-storage-studiora-does-not-store-your-data-on-external-servers-after-a-successful-backup-update-the-stored-timestamp-and-display-the-success-message-backup-successful-saved-to-your-cloud-storage-with-a-subtle-fade-in-checkmark-animation-lasting-1-5-s-the-section-must-maintain-the-existing-calm-and-minimal-visual-style-of-the-settings-page",
+      "featureTitle": "Add a 'Backup & Restore' section to the Settings page (`frontend/src/pages/Settings.tsx`) positioned as a clearly labelled card. The section must display: a ☁️ heading 'Backup & Restore', a 'Last Backup:' line showing a formatted date/time string stored in localStorage after each successful backup or 'Never' if no backup has been made, a 'Backup to Cloud' button, a 'Restore from Backup' button, and the informational text: 'Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.' After a successful backup update the stored timestamp and display the success message 'Backup Successful — Saved to your cloud storage.' with a subtle fade-in / checkmark animation lasting ~1.5 s. The section must maintain the existing calm and minimal visual style of the Settings page.",
+      "files": [
+        "frontend/src/hooks/useBackupRestore.ts",
+        "frontend/src/pages/Settings.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-gate-the-entire-backup-restore-section-behind-premium-status-using-the-existing-ispremium-check-from-frontend-src-utils-premiumcheck-ts-free-tier-users-must-see-the-section-heading-and-a-lock-indicator-with-an-upgrade-prompt-message-e-g-cloud-backup-is-a-premium-feature-upgrade-to-back-up-your-data-and-the-backup-to-cloud-restore-from-backup-buttons-must-be-disabled-or-replaced-by-an-upgradeprompt-component-premium-users-see-the-fully-functional-section-trial-users-should-also-have-access",
+      "featureTitle": "Gate the entire Backup & Restore section behind premium status using the existing `isPremium` check from `frontend/src/utils/premiumCheck.ts`. Free-tier users must see the section heading and a lock indicator (🔒) with an upgrade prompt message (e.g., 'Cloud Backup is a Premium feature. Upgrade to back up your data.') and the 'Backup to Cloud' / 'Restore from Backup' buttons must be disabled or replaced by an UpgradePrompt component. Premium users see the fully functional section. Trial users should also have access.",
+      "files": [
+        "frontend/src/pages/Settings.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
       ],
       "confidence": "high"
     }

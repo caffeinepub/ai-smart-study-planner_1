@@ -1,206 +1,180 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { X, Check, Sparkles, Zap, Star } from 'lucide-react';
-import { PREMIUM_FEATURES, ALL_PREMIUM_FEATURES } from '../types/features';
+import { X, Star, Zap, BarChart2, BookOpen, Cloud, Palette, Lock } from 'lucide-react';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface PaywallScreenProps {
-  open: boolean;
   onClose: () => void;
+  featureName?: string;
 }
 
-type PlanType = 'monthly' | 'yearly';
+const PREMIUM_FEATURES = [
+  { icon: <Zap className="w-4 h-4" />, label: 'Smart Study Insights', desc: 'AI-powered personalized recommendations' },
+  { icon: <BarChart2 className="w-4 h-4" />, label: 'Advanced Statistics', desc: 'Detailed analytics and progress charts' },
+  { icon: <BookOpen className="w-4 h-4" />, label: 'Unlimited Study Plans', desc: 'Manage multiple exams simultaneously' },
+  { icon: <Cloud className="w-4 h-4" />, label: 'Cloud Backup & Restore', desc: 'Securely sync your data across devices' },
+  { icon: <Palette className="w-4 h-4" />, label: 'Customizable Themes', desc: 'Personalize your study environment' },
+  { icon: <Lock className="w-4 h-4" />, label: 'Advanced Focus Mode', desc: 'Ambient sounds and distraction-free sessions' },
+];
 
-export default function PaywallScreen({ open, onClose }: PaywallScreenProps) {
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>('yearly');
+export default function PaywallScreen({ onClose, featureName }: PaywallScreenProps) {
+  const { subscribe, startTrial, subscription } = useSubscriptionContext();
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isLoading, setIsLoading] = useState(false);
-  const { provider } = useSubscriptionContext();
 
-  const handleStartTrial = async () => {
+  const { trialUsed } = subscription;
+
+  const handleSubscribe = async () => {
     setIsLoading(true);
     try {
-      await provider.startFreeTrial();
+      await subscribe(selectedPlan);
       onClose();
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubscribe = async () => {
+  const handleStartTrial = async () => {
     setIsLoading(true);
     try {
-      if (selectedPlan === 'monthly') {
-        await provider.subscribeMonthly();
-      } else {
-        await provider.subscribeYearly();
-      }
+      await startTrial();
       onClose();
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto p-0 rounded-3xl border-0 shadow-2xl">
-        {/* Gradient Header */}
-        <div
-          className="relative p-6 rounded-t-3xl overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
-        >
-          {/* Decorative circles */}
-          <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/8" />
-          <div className="absolute right-8 bottom-0 w-24 h-24 rounded-full bg-white/5" />
-
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-background rounded-2xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="relative bg-gradient-to-br from-primary to-accent p-6 text-primary-foreground">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 active:scale-90 transition-all duration-150"
+            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
           >
-            <X className="w-4 h-4 text-white" />
+            <X className="w-4 h-4" />
           </button>
-
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-white/80 text-xs font-bold uppercase tracking-widest">Studiora Premium</span>
-            </div>
-            <DialogTitle className="text-2xl font-bold text-white mb-1.5">
-              Unlock Your Full Potential
-            </DialogTitle>
-            <p className="text-white/70 text-sm">
-              Join thousands of students achieving better results.
-            </p>
+          <div className="flex items-center gap-2 mb-2">
+            <Star className="w-5 h-5 fill-current" />
+            <span className="text-sm font-semibold uppercase tracking-wider">Studiora Premium</span>
           </div>
+          <h2 className="text-2xl font-bold">Unlock Your Full Potential</h2>
+          {featureName && (
+            <p className="text-sm mt-1 opacity-90">
+              <span className="font-medium">{featureName}</span> is a Premium feature
+            </p>
+          )}
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* Free tier limitations */}
-          <div className="p-3.5 rounded-2xl bg-muted/50 border border-border">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Free Plan Includes</p>
-            <ul className="space-y-1">
-              {[
-                'Create one study plan',
-                'Daily task management',
-                'Basic Pomodoro timer',
-                'Light & dark theme toggle',
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Premium Features List */}
-          <div className="space-y-2.5">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Everything in Premium
-            </p>
-            {ALL_PREMIUM_FEATURES.map((feature) => {
-              const config = PREMIUM_FEATURES[feature];
-              return (
-                <div key={feature} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Check className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{config.icon}</span>
-                      <p className="font-semibold text-sm">{config.displayName}</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{config.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Plan Selector */}
-          <div className="space-y-2.5">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Choose Your Plan
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Monthly */}
-              <button
-                onClick={() => setSelectedPlan('monthly')}
-                className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 active:scale-95 ${
-                  selectedPlan === 'monthly'
-                    ? 'border-primary bg-primary/6 shadow-card'
-                    : 'border-border hover:border-primary/40'
-                }`}
-              >
-                <p className="font-bold text-sm">Monthly</p>
-                <p className="text-2xl font-bold mt-1 text-foreground">$9.99</p>
-                <p className="text-xs text-muted-foreground">per month</p>
-                {selectedPlan === 'monthly' && (
-                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                )}
-              </button>
-
-              {/* Yearly — Best Value */}
-              <button
-                onClick={() => setSelectedPlan('yearly')}
-                className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 active:scale-95 ${
-                  selectedPlan === 'yearly'
-                    ? 'border-primary bg-primary/6 shadow-card'
-                    : 'border-border hover:border-primary/40'
-                }`}
-              >
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white whitespace-nowrap"
-                  style={{ background: 'linear-gradient(90deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}>
-                  <Star className="w-2.5 h-2.5" />
-                  Best Value
-                </div>
-                <p className="font-bold text-sm">Yearly</p>
-                <p className="text-2xl font-bold mt-1 text-foreground">$5.99</p>
-                <p className="text-xs text-muted-foreground">per month</p>
-                <p className="text-xs text-primary font-semibold">Save 40%</p>
-                {selectedPlan === 'yearly' && (
-                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* CTAs */}
+        <div className="p-6 space-y-5">
+          {/* Features List */}
           <div className="space-y-3">
+            {PREMIUM_FEATURES.map((f) => (
+              <div key={f.label} className="flex items-start gap-3">
+                <div className="mt-0.5 p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                  {f.icon}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{f.label}</p>
+                  <p className="text-xs text-muted-foreground">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pricing Plans */}
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">Choose your plan</p>
+
+            {/* Yearly Plan */}
             <button
-              onClick={handleStartTrial}
-              disabled={isLoading}
-              className="w-full py-4 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-all duration-150 disabled:opacity-60 shadow-primary"
-              style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
+              onClick={() => setSelectedPlan('yearly')}
+              className={`w-full rounded-xl border-2 p-4 text-left transition-all relative ${
+                selectedPlan === 'yearly'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50'
+              }`}
             >
-              <Zap className="w-5 h-5" />
-              {isLoading ? 'Starting...' : 'Start 7-Day Free Trial'}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">Yearly Plan</span>
+                    <Badge className="bg-accent text-accent-foreground text-xs px-2 py-0.5">Best Value</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Save over 37% vs monthly</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-foreground">$29.99</p>
+                  <p className="text-xs text-muted-foreground">per year</p>
+                </div>
+              </div>
+              {selectedPlan === 'yearly' && (
+                <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+                </div>
+              )}
             </button>
+
+            {/* Monthly Plan */}
             <button
+              onClick={() => setSelectedPlan('monthly')}
+              className={`w-full rounded-xl border-2 p-4 text-left transition-all relative ${
+                selectedPlan === 'monthly'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-foreground">Monthly Plan</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">Flexible, cancel anytime</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-foreground">$3.99</p>
+                  <p className="text-xs text-muted-foreground">per month</p>
+                </div>
+              </div>
+              {selectedPlan === 'monthly' && (
+                <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+                </div>
+              )}
+            </button>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="space-y-2">
+            <Button
               onClick={handleSubscribe}
               disabled={isLoading}
-              className="w-full py-3 rounded-2xl font-semibold text-sm text-primary bg-primary/8 border border-primary/20 hover:bg-primary/15 active:scale-[0.98] transition-all duration-150 disabled:opacity-60"
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold py-3 rounded-xl"
             >
-              {isLoading ? 'Processing...' : `Subscribe ${selectedPlan === 'yearly' ? 'Yearly' : 'Monthly'}`}
-            </button>
-            <p className="text-center text-xs text-muted-foreground">
-              No credit card required for trial. Cancel anytime.
-            </p>
+              {isLoading ? 'Processing...' : `Subscribe ${selectedPlan === 'yearly' ? 'Yearly — $29.99' : 'Monthly — $3.99/mo'}`}
+            </Button>
+
+            {!trialUsed && (
+              <Button
+                variant="outline"
+                onClick={handleStartTrial}
+                disabled={isLoading}
+                className="w-full rounded-xl"
+              >
+                Start Free Trial (3 Days)
+              </Button>
+            )}
           </div>
 
-          <button
-            onClick={onClose}
-            className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
-          >
-            Continue with Free Plan
-          </button>
+          <p className="text-center text-xs text-muted-foreground">
+            Cancel anytime. No hidden fees.
+          </p>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

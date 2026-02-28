@@ -3,6 +3,7 @@ import { useActor } from './useActor';
 import { useGuestMode } from './useGuestMode';
 import { useInternetIdentity } from './useInternetIdentity';
 import type { Exam, ExamSetup, DailyTask, ProgressData, WeeklyProgressEntry } from '../backend';
+import { toast } from 'sonner';
 
 // ── Guest Study Plan Generator ────────────────────────────────────────────────
 
@@ -312,24 +313,13 @@ export function useGetWeeklyProgress(examId: bigint | null) {
         try {
           const stored = localStorage.getItem(`guest_exams_${deviceId}`);
           if (!stored) {
-            return {
-              weeklyEntries: [],
-              studyStreak: 0n,
-              totalCompleted: 0n,
-              totalPending: 0n,
-            };
+            return { weeklyEntries: [], studyStreak: 0n, totalCompleted: 0n, totalPending: 0n };
           }
           const exams = JSON.parse(stored);
           const examRaw = exams.find((e: any) => BigInt(e.id) === examId);
           if (!examRaw) {
-            return {
-              weeklyEntries: [],
-              studyStreak: 0n,
-              totalCompleted: 0n,
-              totalPending: 0n,
-            };
+            return { weeklyEntries: [], studyStreak: 0n, totalCompleted: 0n, totalPending: 0n };
           }
-          // Deserialize bigints
           const exam: Exam = {
             ...examRaw,
             id: BigInt(examRaw.id),
@@ -348,12 +338,7 @@ export function useGetWeeklyProgress(examId: bigint | null) {
           };
           return computeGuestWeeklyProgress(exam);
         } catch {
-          return {
-            weeklyEntries: [],
-            studyStreak: 0n,
-            totalCompleted: 0n,
-            totalPending: 0n,
-          };
+          return { weeklyEntries: [], studyStreak: 0n, totalCompleted: 0n, totalPending: 0n };
         }
       }
 
@@ -446,9 +431,9 @@ export function useSaveCallerUserProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (profile: { name: string; userTier: any; guestMode: boolean; deviceId?: string }) => {
+    mutationFn: async (profile: { name: string; userTier: 'free' | 'premium' | 'trial'; guestMode: boolean; deviceId?: string }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.saveCallerUserProfile(profile);
+      return actor.saveCallerUserProfile(profile as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
@@ -468,5 +453,64 @@ export function useGetUserTier() {
       return profile?.userTier ?? 'free';
     },
     enabled: !!actor && !actorFetching && !!identity,
+  });
+}
+
+// ── Backup & Restore Mutations ────────────────────────────────────────────────
+
+export function useBackupData() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.backupUserData();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['latestBackup'] });
+      toast.success('Backup successful! Your data has been saved to the cloud.');
+    },
+    onError: (error: any) => {
+      const message = error?.message || 'Backup failed. Please try again.';
+      toast.error(message);
+    },
+  });
+}
+
+export function useRestoreData() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.restoreUserData();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['weeklyProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['studyStreak'] });
+      toast.success('Data restored successfully from your latest backup.');
+    },
+    onError: (error: any) => {
+      const message = error?.message || 'Restore failed. Please try again.';
+      toast.error(message);
+    },
+  });
+}
+
+export function useGetLatestBackup() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery({
+    queryKey: ['latestBackup'],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getLatestBackup();
+    },
+    enabled: !!actor && !isFetching && !!identity,
   });
 }

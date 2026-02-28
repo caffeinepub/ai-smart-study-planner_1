@@ -108,7 +108,9 @@ export default function AdvancedFocusSettings({
           </div>
         </div>
 
-        <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+        {showPaywall && (
+          <PaywallScreen onClose={() => setShowPaywall(false)} featureName="Advanced Focus Mode" />
+        )}
       </>
     );
   }
@@ -132,151 +134,140 @@ export default function AdvancedFocusSettings({
         <div className="flex gap-1 p-1 bg-muted/40 rounded-xl">
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-              activeTab === 'settings' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'settings'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Settings
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-              activeTab === 'history' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'history'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            History {sessions.length > 0 && `(${sessions.length})`}
+            History ({sessions.length})
           </button>
         </div>
       </div>
 
       {activeTab === 'settings' ? (
         <div className="p-4 space-y-4">
-          {/* Custom Intervals */}
+          {/* Work interval */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Custom Intervals</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-semibold">Focus Duration</span>
+              </div>
+              <span className="text-xs font-bold text-primary">{workMinutes} min</span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Focus (min)</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onWorkMinutesChange(Math.max(5, workMinutes - 5))}
-                    className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center text-sm font-bold hover:bg-muted active:scale-90 transition-all"
-                  >
-                    −
-                  </button>
-                  <span className="flex-1 text-center text-sm font-bold text-primary">{workMinutes}</span>
-                  <button
-                    onClick={() => onWorkMinutesChange(Math.min(90, workMinutes + 5))}
-                    className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center text-sm font-bold hover:bg-muted active:scale-90 transition-all"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Break (min)</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onBreakMinutesChange(Math.max(1, breakMinutes - 1))}
-                    className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center text-sm font-bold hover:bg-muted active:scale-90 transition-all"
-                  >
-                    −
-                  </button>
-                  <span className="flex-1 text-center text-sm font-bold text-accent">{breakMinutes}</span>
-                  <button
-                    onClick={() => onBreakMinutesChange(Math.min(30, breakMinutes + 1))}
-                    className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center text-sm font-bold hover:bg-muted active:scale-90 transition-all"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+            <input
+              type="range"
+              min={5}
+              max={90}
+              step={5}
+              value={workMinutes}
+              onChange={(e) => onWorkMinutesChange(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>5 min</span>
+              <span>90 min</span>
             </div>
           </div>
 
-          {/* Ambient Sounds */}
+          {/* Break interval */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-xs font-semibold">Break Duration</span>
+              </div>
+              <span className="text-xs font-bold text-emerald-500">{breakMinutes} min</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={30}
+              step={1}
+              value={breakMinutes}
+              onChange={(e) => onBreakMinutesChange(Number(e.target.value))}
+              className="w-full accent-emerald-500"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>1 min</span>
+              <span>30 min</span>
+            </div>
+          </div>
+
+          {/* Ambient sounds */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Volume2 className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ambient Sound</p>
+              <span className="text-xs font-semibold">Ambient Sound</span>
+              {selectedSound !== 'none' && (
+                <span className="text-[10px] text-emerald-500 font-semibold ml-auto">playing</span>
+              )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {AMBIENT_SOUNDS.map((sound) => (
                 <button
                   key={sound.id}
                   onClick={() => onSoundChange(sound.id)}
-                  className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all duration-200 active:scale-95 ${
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl text-center transition-all active:scale-95 ${
                     selectedSound === sound.id
-                      ? 'border-primary bg-primary/8'
-                      : 'border-border hover:border-primary/30'
+                      ? 'bg-primary/15 border border-primary/30 text-primary'
+                      : 'bg-muted/30 border border-border text-muted-foreground hover:border-primary/20'
                   }`}
                 >
-                  <span className="text-lg">{sound.emoji}</span>
-                  <span className="text-[9px] font-semibold text-muted-foreground">{sound.label}</span>
+                  <span className="text-base">{sound.emoji}</span>
+                  <span className="text-[9px] font-semibold">{sound.label}</span>
                 </button>
               ))}
             </div>
-            {selectedSound !== 'none' && (
-              <p className="text-[10px] text-muted-foreground text-center">
-                🎵 {AMBIENT_SOUNDS.find((s) => s.id === selectedSound)?.label} ambience playing
-              </p>
-            )}
           </div>
         </div>
       ) : (
         <div className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <History className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Recent Sessions</p>
-            </div>
-            {sessions.length > 0 && (
-              <button
-                onClick={clearHistory}
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-                Clear
-              </button>
-            )}
-          </div>
-
           {sessions.length === 0 ? (
-            <div className="text-center py-6">
-              <History className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-40" />
-              <p className="text-xs text-muted-foreground">No sessions recorded yet</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Complete a focus session to see it here</p>
+            <div className="flex flex-col items-center justify-center py-6 text-center gap-2">
+              <History className="w-8 h-8 text-muted-foreground/40" />
+              <p className="text-xs text-muted-foreground">No sessions recorded yet.</p>
+              <p className="text-[10px] text-muted-foreground/60">Complete a focus session to see it here.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    session.phase === 'work'
-                      ? 'bg-primary/6 border-primary/15'
-                      : 'bg-accent/6 border-accent/15'
-                  }`}
-                >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    session.phase === 'work' ? 'bg-primary/15' : 'bg-accent/15'
-                  }`}>
-                    <span className="text-sm">{session.phase === 'work' ? '🎯' : '☕'}</span>
+            <>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {sessions.slice().reverse().map((session, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 border border-border">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      session.phase === 'work' ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-500'
+                    }`}>
+                      {session.phase === 'work' ? <Clock className="w-3.5 h-3.5" /> : <Music className="w-3.5 h-3.5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold capitalize">{session.phase} session</p>
+                      <p className="text-[10px] text-muted-foreground">{formatSessionTime(session.timestamp)}</p>
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground shrink-0">
+                      {formatDuration(session.durationSeconds)}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground capitalize">
-                      {session.phase === 'work' ? 'Focus Session' : 'Break'}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {formatDuration(session.durationSeconds)} · {formatSessionTime(session.timestamp)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <button
+                onClick={clearHistory}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-destructive bg-destructive/8 border border-destructive/20 hover:bg-destructive/15 active:scale-95 transition-all duration-150"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear History
+              </button>
+            </>
           )}
         </div>
       )}

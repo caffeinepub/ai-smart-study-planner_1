@@ -1,16 +1,9 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import type { SubscriptionProvider, SubscriptionStatus } from '../hooks/useSubscription';
-import { useSubscription } from '../hooks/useSubscription';
+import React, { createContext, useContext } from 'react';
+import { useSubscription, SubscriptionProvider } from '../hooks/useSubscription';
 
-interface SubscriptionContextValue {
-  provider: SubscriptionProvider;
-  status: SubscriptionStatus;
-  isPremium: boolean;
-}
+const SubscriptionContext = createContext<SubscriptionProvider | null>(null);
 
-const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
-
-export function SubscriptionProvider({ children }: { children: ReactNode }) {
+export function SubscriptionProviderComponent({ children }: { children: React.ReactNode }) {
   const subscription = useSubscription();
   return (
     <SubscriptionContext.Provider value={subscription}>
@@ -19,8 +12,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSubscriptionContext(): SubscriptionContextValue {
-  const ctx = useContext(SubscriptionContext);
-  if (!ctx) throw new Error('useSubscriptionContext must be used within SubscriptionProvider');
-  return ctx;
+export function useSubscriptionContext(): SubscriptionProvider {
+  const context = useContext(SubscriptionContext);
+  if (!context) {
+    throw new Error('useSubscriptionContext must be used within a SubscriptionProviderComponent');
+  }
+  return context;
 }

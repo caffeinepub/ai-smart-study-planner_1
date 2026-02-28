@@ -1,278 +1,477 @@
-import React, { useState } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import React, { useState, useCallback } from 'react';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
+import { useSubscriptionContext } from '../contexts/SubscriptionContext';
+import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
+import { useGuestMode } from '../hooks/useGuestMode';
+import { useTheme } from '../hooks/useTheme';
+import { useLocalProfile } from '../hooks/useLocalProfile';
+import { useBackupRestore } from '../hooks/useBackupRestore';
+import { useQueryClient } from '@tanstack/react-query';
+import ThemeSelectorSection from '../components/ThemeSelectorSection';
+import PaywallScreen from '../components/PaywallScreen';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   User,
   Moon,
   Sun,
-  Info,
-  Sparkles,
-  Shield,
-  ChevronRight,
-  Pencil,
-  Check,
-  X,
+  LogOut,
+  LogIn,
+  Crown,
+  Star,
+  Clock,
+  Cloud,
+  CloudDownload,
+  Lock,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react';
-import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
-import { useSubscriptionContext } from '../contexts/SubscriptionContext';
-import { useTheme } from '../hooks/useTheme';
-import { useLocalProfile } from '../hooks/useLocalProfile';
-import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
-import ThemeSelectorSection from '../components/ThemeSelectorSection';
-import PaywallScreen from '../components/PaywallScreen';
-
-interface SettingsCardProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-function SettingsCard({ children, className = '' }: SettingsCardProps) {
-  return (
-    <div className={`glass-card rounded-2xl overflow-hidden ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-interface SettingsRowProps {
-  icon: React.ReactNode;
-  label: string;
-  description?: string;
-  right?: React.ReactNode;
-  onClick?: () => void;
-  danger?: boolean;
-}
-
-function SettingsRow({ icon, label, description, right, onClick, danger }: SettingsRowProps) {
-  return (
-    <div
-      className={`flex items-center gap-3.5 px-4 py-3.5 ${onClick ? 'cursor-pointer hover:bg-muted/30 active:bg-muted/50 transition-colors' : ''}`}
-      onClick={onClick}
-    >
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${danger ? 'bg-destructive/10' : 'bg-primary/8 dark:bg-primary/15'}`}>
-        <span className={danger ? 'text-destructive' : 'text-primary'}>{icon}</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${danger ? 'text-destructive' : 'text-foreground'}`}>{label}</p>
-        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
-      </div>
-      {right && <div className="shrink-0">{right}</div>}
-    </div>
-  );
-}
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 export default function Settings() {
-  const { isPremiumTestingEnabled, togglePremiumTesting } = usePremiumTestingMode();
-  const { isPremium: isSubscriptionPremium, status: subscriptionStatus } = useSubscriptionContext();
+  const { identity, login, clear, loginStatus } = useInternetIdentity();
+  const { subscription, cancelSubscription } = useSubscriptionContext();
+  const { isPremium } = useConsolidatedPremiumStatus();
+  const { isGuestMode } = useGuestMode();
   const { theme, toggleTheme } = useTheme();
   const { displayName, setDisplayName } = useLocalProfile();
-  const { isPremium } = useConsolidatedPremiumStatus();
+  const queryClient = useQueryClient();
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(displayName || '');
   const [showPaywall, setShowPaywall] = useState(false);
 
-  // Profile editing state
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState(displayName);
+  // Restore confirmation dialog state
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [restoreConfirmResolve, setRestoreConfirmResolve] = useState<((v: boolean) => void) | null>(null);
 
-  const handleEditName = () => {
-    setNameInput(displayName);
-    setIsEditingName(true);
-  };
+  const isAuthenticated = !!identity;
+  const isDark = theme === 'dark';
+
+  const {
+    lastBackup,
+    isBackingUp,
+    isRestoring,
+    successMessage,
+    errorMessage,
+    handleBackup,
+    handleRestore,
+  } = useBackupRestore();
 
   const handleSaveName = () => {
     if (nameInput.trim()) {
       setDisplayName(nameInput.trim());
     }
-    setIsEditingName(false);
+    setEditingName(false);
   };
 
-  const handleCancelEdit = () => {
-    setNameInput(displayName);
-    setIsEditingName(false);
+  const handleLogout = async () => {
+    await clear();
+    queryClient.clear();
   };
 
-  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleSaveName();
-    if (e.key === 'Escape') handleCancelEdit();
+  const handleLogin = async () => {
+    try {
+      await login();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Confirmation dialog promise-based handler
+  const confirmRestore = useCallback((): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setRestoreConfirmResolve(() => resolve);
+      setShowRestoreConfirm(true);
+    });
+  }, []);
+
+  const handleRestoreConfirm = () => {
+    setShowRestoreConfirm(false);
+    restoreConfirmResolve?.(true);
+    setRestoreConfirmResolve(null);
+  };
+
+  const handleRestoreCancel = () => {
+    setShowRestoreConfirm(false);
+    restoreConfirmResolve?.(false);
+    setRestoreConfirmResolve(null);
+  };
+
+  const onRestoreClick = () => {
+    handleRestore(confirmRestore);
+  };
+
+  const { trialActive, trialUsed, trialDaysRemaining, trialExpiresAt } = subscription;
+
+  const getSubscriptionLabel = () => {
+    if (subscription.tier === 'monthly' && subscription.isActive) return 'Monthly Premium';
+    if (subscription.tier === 'yearly' && subscription.isActive) return 'Yearly Premium';
+    if (subscription.tier === 'trial' && trialActive) return `Trial — ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left`;
+    if (trialUsed && !trialActive) return 'Trial Ended';
+    return 'Free Plan';
+  };
+
+  const getTrialStatusText = () => {
+    if (trialActive && trialExpiresAt) {
+      return `Trial active — expires ${trialExpiresAt.toLocaleDateString()} (${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} remaining)`;
+    }
+    if (trialUsed && !trialActive) {
+      return 'Your free trial has ended. Upgrade to continue premium access.';
+    }
+    return null;
+  };
+
+  const trialStatusText = getTrialStatusText();
+
+  const formatBackupDate = (date: Date) => {
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   return (
-    <div className="p-5 space-y-5">
-      {/* Header */}
-      <div className="space-y-0.5">
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground text-sm">Manage your preferences.</p>
-      </div>
-
-      {/* Profile Section */}
-      <SettingsCard>
-        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Profile</p>
+    <div className="min-h-screen bg-background pb-24">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your account and preferences</p>
         </div>
-        <div className="p-4">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-primary shrink-0">
-              <User className="w-7 h-7 text-white" />
+
+        {/* Profile Section */}
+        <div className="glass-card rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <User className="w-5 h-5 text-primary" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-bold text-base truncate">
-                  {displayName || 'No name set'}
-                </p>
-                <Badge variant="outline" className="text-xs rounded-full">Local</Badge>
+            <h2 className="font-semibold text-foreground">Profile</h2>
+          </div>
+
+          <div className="space-y-3">
+            {editingName ? (
+              <div className="flex gap-2">
+                <Input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Your name"
+                  className="flex-1"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSaveName}>Save</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingName(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{displayName || 'Set your name'}</p>
+                  <p className="text-xs text-muted-foreground">Display name</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => { setNameInput(displayName || ''); setEditingName(true); }}>
+                  Edit
+                </Button>
+              </div>
+            )}
+
+            <Separator />
+
+            {isAuthenticated ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Logged in</p>
+                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                    {identity?.getPrincipal().toString().slice(0, 20)}...
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleLogout} className="gap-1.5">
+                  <LogOut className="w-3.5 h-3.5" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {isGuestMode ? 'Guest Mode' : 'Not logged in'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Login to sync your data</p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleLogin}
+                  disabled={loginStatus === 'logging-in'}
+                  className="gap-1.5"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  {loginStatus === 'logging-in' ? 'Logging in...' : 'Login'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Appearance Section */}
+        <div className="glass-card rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              {isDark ? <Moon className="w-5 h-5 text-primary" /> : <Sun className="w-5 h-5 text-primary" />}
+            </div>
+            <h2 className="font-semibold text-foreground">Appearance</h2>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Dark Mode</p>
+              <p className="text-xs text-muted-foreground">Switch between light and dark</p>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className={`relative w-12 h-6 rounded-full transition-colors ${isDark ? 'bg-primary' : 'bg-muted'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isDark ? 'translate-x-7' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
+          <Separator />
+
+          <ThemeSelectorSection />
+        </div>
+
+        {/* Subscription Section */}
+        <div className="glass-card rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Crown className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="font-semibold text-foreground">Subscription</h2>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-foreground">{getSubscriptionLabel()}</p>
                 {isPremium && (
-                  <Badge className="text-xs gap-1 rounded-full bg-primary text-white border-0">
-                    <Sparkles className="w-2.5 h-2.5" />
+                  <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                    <Star className="w-3 h-3 mr-1 fill-current" />
                     Premium
                   </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Data stored locally on this device
+                {isPremium
+                  ? 'You have access to all premium features'
+                  : 'Upgrade to unlock all features'}
               </p>
             </div>
           </div>
 
-          {/* Name edit field */}
-          {isEditingName ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={handleNameKeyDown}
-                placeholder="Enter your display name"
-                className="flex-1 h-9 text-sm rounded-xl"
-                autoFocus
-                maxLength={40}
-              />
-              <button
-                onClick={handleSaveName}
-                disabled={!nameInput.trim()}
-                className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleCancelEdit}
-                className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          {/* Trial Status */}
+          {trialStatusText && (
+            <div className={`flex items-start gap-2 p-3 rounded-xl text-xs ${
+              trialActive
+                ? 'bg-primary/10 text-primary'
+                : 'bg-destructive/10 text-destructive'
+            }`}>
+              {trialActive ? (
+                <Clock className="w-4 h-4 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              )}
+              <span>{trialStatusText}</span>
             </div>
-          ) : (
-            <button
-              onClick={handleEditName}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-primary bg-primary/8 border border-primary/15 hover:bg-primary/15 active:scale-[0.98] transition-all duration-150"
+          )}
+
+          {!isPremium && (
+            <Button
+              onClick={() => setShowPaywall(true)}
+              className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl"
             >
-              <Pencil className="w-3.5 h-3.5" />
-              {displayName ? 'Edit Display Name' : 'Set Display Name'}
-            </button>
+              <Star className="w-4 h-4 mr-2" />
+              Upgrade to Premium
+            </Button>
+          )}
+
+          {isPremium && (subscription.tier === 'monthly' || subscription.tier === 'yearly') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={cancelSubscription}
+              className="w-full text-muted-foreground"
+            >
+              Cancel Subscription
+            </Button>
           )}
         </div>
-      </SettingsCard>
 
-      {/* Appearance */}
-      <SettingsCard>
-        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Appearance</p>
+        {/* ── Backup & Restore Section ─────────────────────────────────────── */}
+        <div className="glass-card rounded-2xl p-5 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <Cloud className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-foreground">Backup &amp; Restore</h2>
+                <p className="text-xs text-muted-foreground">Export your data to any cloud storage</p>
+              </div>
+            </div>
+            {!isPremium && (
+              <div className="p-1.5 rounded-lg bg-muted">
+                <Lock className="w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+
+          {/* Free user — locked */}
+          {!isPremium ? (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
+                <Lock className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                <span>
+                  Cloud Backup is a <strong className="text-primary">Premium</strong> feature.
+                  Upgrade to back up your data.
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setShowPaywall(true)}
+                className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl"
+              >
+                <Star className="w-3.5 h-3.5 mr-1.5" />
+                Unlock Cloud Backup
+              </Button>
+            </div>
+          ) : (
+            /* Premium user — full access */
+            <div className="space-y-4">
+              {/* Last backup timestamp */}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground font-medium">Last Backup:</span>
+                <span className={lastBackup ? 'text-foreground' : 'text-muted-foreground italic'}>
+                  {lastBackup ? formatBackupDate(lastBackup) : 'Never'}
+                </span>
+              </div>
+
+              {/* Success message with animation */}
+              {successMessage && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-700 dark:text-green-400 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <CheckCircle className="w-4 h-4 shrink-0 text-green-500" />
+                  <span className="font-medium">{successMessage}</span>
+                </div>
+              )}
+
+              {/* Error message */}
+              {errorMessage && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive animate-in fade-in duration-200">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleBackup}
+                  disabled={isBackingUp || isRestoring}
+                  className="rounded-xl gap-1.5 h-11"
+                >
+                  {isBackingUp ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Cloud className="w-4 h-4" />
+                  )}
+                  <span className="text-sm">
+                    {isBackingUp ? 'Saving…' : 'Backup to Cloud'}
+                  </span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={onRestoreClick}
+                  disabled={isBackingUp || isRestoring}
+                  className="rounded-xl gap-1.5 h-11"
+                >
+                  {isRestoring ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CloudDownload className="w-4 h-4" />
+                  )}
+                  <span className="text-sm">
+                    {isRestoring ? 'Restoring…' : 'Restore from Backup'}
+                  </span>
+                </Button>
+              </div>
+
+              {/* Privacy notice */}
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/40 text-xs text-muted-foreground">
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-primary/70" />
+                <span>
+                  Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-        <SettingsRow
-          icon={theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-          label="Dark Mode"
-          description={theme === 'dark' ? 'Currently using dark theme' : 'Currently using light theme'}
-          right={
-            <Switch
-              checked={theme === 'dark'}
-              onCheckedChange={toggleTheme}
-              className="data-[state=checked]:bg-primary"
-            />
-          }
-        />
-      </SettingsCard>
 
-      {/* Theme Customization */}
-      <ThemeSelectorSection />
-
-      {/* Premium Upgrade */}
-      {!isPremium && (
-        <div
-          className="rounded-2xl p-5 relative overflow-hidden cursor-pointer active:scale-[0.98] transition-all duration-150"
-          style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
-          onClick={() => setShowPaywall(true)}
-        >
-          <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/8" />
-          <div className="absolute right-4 bottom-0 w-20 h-20 rounded-full bg-white/5" />
-          <div className="relative flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
-              <Sparkles className="w-6 h-6 text-white" />
+        {/* About Section */}
+        <div className="glass-card rounded-2xl p-5 space-y-3">
+          <h2 className="font-semibold text-foreground">About</h2>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <div className="flex justify-between">
+              <span>App</span>
+              <span className="text-foreground font-medium">Studiora</span>
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-white text-base">Upgrade to Premium</p>
-              <p className="text-white/70 text-xs mt-0.5">
-                Unlock AI scheduling, analytics & more
-              </p>
+            <div className="flex justify-between">
+              <span>Version</span>
+              <span className="text-foreground font-medium">1.0.0</span>
             </div>
-            <ChevronRight className="w-5 h-5 text-white/70" />
+            <div className="flex justify-between">
+              <span>Platform</span>
+              <span className="text-foreground font-medium">Internet Computer</span>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Subscription Status */}
-      {isPremium && subscriptionStatus.tier !== 'free' && (
-        <SettingsCard>
-          <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subscription</p>
-          </div>
-          <SettingsRow
-            icon={<Shield className="w-4 h-4" />}
-            label={`${subscriptionStatus.tier.charAt(0).toUpperCase() + subscriptionStatus.tier.slice(1)} Plan`}
-            description={
-              subscriptionStatus.trialEndsAt
-                ? `Trial ends ${subscriptionStatus.trialEndsAt.toLocaleDateString()}`
-                : subscriptionStatus.renewsAt
-                ? `Renews ${subscriptionStatus.renewsAt.toLocaleDateString()}`
-                : 'Active subscription'
-            }
-            right={
-              <Badge className="text-xs rounded-full bg-primary text-white border-0">Active</Badge>
-            }
-          />
-        </SettingsCard>
-      )}
-
-      {/* Developer Options */}
-      <SettingsCard>
-        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Developer Options</p>
-        </div>
-        <SettingsRow
-          icon={<Shield className="w-4 h-4" />}
-          label="Enable Premium (Testing)"
-          description="Bypass premium checks for testing"
-          right={
-            <Switch
-              checked={isPremiumTestingEnabled}
-              onCheckedChange={togglePremiumTesting}
-              className="data-[state=checked]:bg-primary"
-            />
-          }
-        />
-      </SettingsCard>
-
-      {/* About */}
-      <SettingsCard>
-        <div className="px-4 py-3 border-b border-white/10 dark:border-white/6">
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">About</p>
-        </div>
-        <SettingsRow
-          icon={<Info className="w-4 h-4" />}
-          label="Studiora — Study Planner"
-          description="Version 1.0.0 · Built on the Internet Computer"
-        />
-      </SettingsCard>
+      {/* Restore confirmation dialog */}
+      <AlertDialog open={showRestoreConfirm} onOpenChange={(open) => { if (!open) handleRestoreCancel(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore from Backup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Restoring will replace your current data with the data from the selected backup file. This action cannot be undone. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleRestoreCancel}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreConfirm}>
+              Yes, Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {showPaywall && (
-        <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+        <PaywallScreen onClose={() => setShowPaywall(false)} />
       )}
     </div>
   );

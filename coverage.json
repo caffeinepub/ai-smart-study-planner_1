@@ -1,27 +1,59 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-27T14:59:00.363Z",
+  "generatedAt": "2026-02-28T07:21:05.326Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 4,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Save the uploaded image (open book with green sprout and blue/purple circular background) as the Studiora logo asset at `frontend/public/assets/generated/studiora-logo.png` and use it as the logo displayed in the app header (Layout.tsx) and on the login/landing page (LoginPage.tsx), replacing any previously generated or SVG-based logo.",
+        "summary": "Implement a `createBackup` utility function that collects all user data into a single JSON object and triggers a file download named `studiora_backup.json`. Data to include: study plans and tasks (from useQueries/localStorage guest store), daily progress (useLocalDailyProgress), study streak (useLocalStreak), companion growth state (useStudyCompanion / localStorage), app settings (theme from useTheme, custom theme from useCustomTheme, subscription tier from useSubscription). After constructing the Blob, invoke the Web Share API (`navigator.share` with the file) if available so the device share sheet appears, allowing the user to save to Google Drive, iCloud Drive, Dropbox, OneDrive, or device storage; fall back to a programmatic anchor-click download if the Share API is unavailable. No data must be sent to any backend server.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/public/assets/generated/studiora-logo.png",
-          "frontend/src/components/Layout.tsx",
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/utils/backup.ts"
         ],
         "matchedFiles": [
-          "frontend/src/components/Layout.tsx",
-          "frontend/src/pages/LoginPage.tsx"
+          "frontend/src/utils/backup.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Implement a `restoreBackup` utility function that opens a hidden `<input type='file' accept='.json'>` element via programmatic click to let the user pick a backup file from local storage or a cloud-synced folder. After the user selects a file, parse the JSON, validate its structure, show a confirmation dialog with the message 'Restoring will replace current data. Continue?', and on confirmation write all fields back to localStorage (study plans, tasks, streak, companion state, settings) and reload or refresh all relevant React Query caches so the full app state is restored. Show an error toast if the file is malformed or missing required fields.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/backup.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/backup.ts"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Add a 'Backup & Restore' section to the Settings page (`frontend/src/pages/Settings.tsx`) positioned as a clearly labelled card. The section must display: a ☁️ heading 'Backup & Restore', a 'Last Backup:' line showing a formatted date/time string stored in localStorage after each successful backup or 'Never' if no backup has been made, a 'Backup to Cloud' button, a 'Restore from Backup' button, and the informational text: 'Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.' After a successful backup update the stored timestamp and display the success message 'Backup Successful — Saved to your cloud storage.' with a subtle fade-in / checkmark animation lasting ~1.5 s. The section must maintain the existing calm and minimal visual style of the Settings page.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/Settings.tsx",
+          "frontend/src/hooks/useBackupRestore.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/Settings.tsx",
+          "frontend/src/hooks/useBackupRestore.ts"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Gate the entire Backup & Restore section behind premium status using the existing `isPremium` check from `frontend/src/utils/premiumCheck.ts`. Free-tier users must see the section heading and a lock indicator (🔒) with an upgrade prompt message (e.g., 'Cloud Backup is a Premium feature. Upgrade to back up your data.') and the 'Backup to Cloud' / 'Restore from Backup' buttons must be disabled or replaced by an UpgradePrompt component. Premium users see the fully functional section. Trial users should also have access.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/Settings.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/Settings.tsx"
         ]
       }
     ]
@@ -31,8 +63,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/Layout.tsx",
-    "frontend/src/pages/LoginPage.tsx",
+    "frontend/src/hooks/useBackupRestore.ts",
+    "frontend/src/pages/Settings.tsx",
+    "frontend/src/utils/backup.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

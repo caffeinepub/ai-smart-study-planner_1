@@ -17,6 +17,11 @@ export interface WeeklyProgressEntry {
     completedTasks: bigint;
     dayLabel: string;
 }
+export interface TrialState {
+    trialActive: boolean;
+    trialUsed: boolean;
+    trialStartTimestamp: bigint;
+}
 export interface ProgressData {
     totalCompleted: bigint;
     studyStreak: bigint;
@@ -28,6 +33,12 @@ export interface ExamSetup {
     subjects: Array<Subject>;
     examDate: bigint;
     examName: string;
+}
+export interface BackupData {
+    backedUpAt: bigint;
+    exams: Array<Exam>;
+    trialState?: TrialState;
+    userProfile?: UserProfile;
 }
 export interface Exam {
     id: bigint;
@@ -69,15 +80,18 @@ export enum UserRole {
     guest = "guest"
 }
 export enum UserTier {
+    trial = "trial",
     premium = "premium",
     free = "free"
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     assignUserRole(user: Principal, role: UserRole): Promise<void>;
+    backupUserData(): Promise<void>;
     checkFeatureAccess(feature: PremiumFeature): Promise<{
         accessGranted: boolean;
     }>;
+    checkGuestFeatureAccess(deviceId: string, feature: PremiumFeature): Promise<boolean>;
     createGuestProfile(deviceId: string, name: string): Promise<void>;
     getAllExams(): Promise<Array<Exam>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
@@ -86,12 +100,25 @@ export interface backendInterface {
     getGuestExams(deviceId: string): Promise<Array<Exam>>;
     getGuestProfile(deviceId: string): Promise<UserProfile | null>;
     getGuestStudyStreak(deviceId: string, examId: bigint): Promise<bigint>;
+    getGuestTrialStatus(deviceId: string): Promise<boolean>;
     getGuestWeeklyProgress(deviceId: string, examId: bigint): Promise<ProgressData>;
+    getGuestWeeklyStats(deviceId: string): Promise<{
+        streak: bigint;
+        totalTasks: bigint;
+        completedTasks: bigint;
+    }>;
+    getLatestBackup(): Promise<BackupData | null>;
     getStudyStreak(examId: bigint): Promise<bigint>;
     getTodayGuestTasks(deviceId: string, examId: bigint): Promise<Array<DailyTask>>;
     getTodayTasks(examId: bigint): Promise<Array<DailyTask>>;
+    getTrialStatus(): Promise<boolean>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWeeklyProgress(examId: bigint): Promise<ProgressData>;
+    getWeeklyStats(): Promise<{
+        streak: bigint;
+        totalTasks: bigint;
+        completedTasks: bigint;
+    }>;
     hasFeatureAccess(feature: PremiumFeature): Promise<boolean>;
     hasTierAccess(requiredTier: UserTier): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
@@ -99,8 +126,12 @@ export interface backendInterface {
     markGuestTaskIncomplete(deviceId: string, examId: bigint, taskId: bigint): Promise<void>;
     markTaskComplete(examId: bigint, taskId: bigint): Promise<void>;
     markTaskIncomplete(examId: bigint, taskId: bigint): Promise<void>;
+    restoreUserData(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    startGuestTrial(deviceId: string): Promise<void>;
+    startTrial(): Promise<void>;
     submitExamSetup(setup: ExamSetup): Promise<bigint>;
     submitGuestExamSetup(deviceId: string, setup: ExamSetup): Promise<bigint>;
-    upgradeToPremium(): Promise<void>;
+    upgradeGuestToPremium(deviceId: string): Promise<void>;
+    upgradeToPremium(user: Principal): Promise<void>;
 }

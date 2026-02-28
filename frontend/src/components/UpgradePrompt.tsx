@@ -1,101 +1,69 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, ArrowRight } from 'lucide-react';
-import { PremiumFeature, PREMIUM_FEATURES, ALL_PREMIUM_FEATURES } from '../types/features';
+import { Lock, Star, ArrowRight, Zap, BarChart2, BookOpen, Cloud, Palette } from 'lucide-react';
 import PaywallScreen from './PaywallScreen';
 
 interface UpgradePromptProps {
-  featureName?: PremiumFeature;
-  highlightedFeature?: PremiumFeature;
+  featureName?: string;
+  description?: string;
+  className?: string;
 }
 
-export default function UpgradePrompt({ featureName, highlightedFeature }: UpgradePromptProps) {
-  const [showPaywall, setShowPaywall] = useState(false);
+const PREMIUM_HIGHLIGHTS = [
+  { icon: <Zap className="w-3.5 h-3.5" />, label: 'Smart Study Insights' },
+  { icon: <BarChart2 className="w-3.5 h-3.5" />, label: 'Advanced Statistics' },
+  { icon: <BookOpen className="w-3.5 h-3.5" />, label: 'Unlimited Study Plans' },
+  { icon: <Cloud className="w-3.5 h-3.5" />, label: 'Cloud Backup & Restore' },
+  { icon: <Palette className="w-3.5 h-3.5" />, label: 'Customizable Themes' },
+];
 
-  // Support both featureName (legacy) and highlightedFeature
-  const highlighted = highlightedFeature ?? featureName;
-  const featuredConfig = highlighted ? PREMIUM_FEATURES[highlighted] : null;
+export default function UpgradePrompt({ featureName, description, className = '' }: UpgradePromptProps) {
+  const [showPaywall, setShowPaywall] = useState(false);
 
   return (
     <>
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
-        {/* Icon */}
-        <div className="relative mb-5">
-          <div className="absolute inset-0 rounded-3xl blur-2xl opacity-30 scale-110"
-            style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }} />
-          <div
-            className="relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-primary"
-            style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
-          >
-            {featuredConfig ? (
-              <span className="text-3xl">{featuredConfig.icon}</span>
-            ) : (
-              <Sparkles className="w-9 h-9 text-white" />
+      <div className={`rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 p-5 ${className}`}>
+        <div className="flex items-start gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground shrink-0">
+            <Lock className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+              <span className="text-xs font-semibold text-primary uppercase tracking-wider">Premium Feature</span>
+            </div>
+            <h3 className="font-semibold text-foreground text-sm">
+              {featureName ? `Unlock ${featureName}` : 'Upgrade to Premium'}
+            </h3>
+            {description && (
+              <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
             )}
           </div>
         </div>
 
-        {featuredConfig ? (
-          <>
-            <h2 className="text-xl font-bold mb-2">
-              Unlock {featuredConfig.displayName}
-            </h2>
-            <p className="text-muted-foreground text-sm mb-6 max-w-xs leading-relaxed">
-              {featuredConfig.description}
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 className="text-xl font-bold mb-2">Premium Feature</h2>
-            <p className="text-muted-foreground text-sm mb-6 max-w-xs leading-relaxed">
-              Upgrade to Premium to unlock this feature and supercharge your study sessions.
-            </p>
-          </>
-        )}
-
-        {/* Feature list */}
-        <div className="w-full max-w-xs space-y-2 mb-7 text-left">
-          {ALL_PREMIUM_FEATURES.map((f) => {
-            const config = PREMIUM_FEATURES[f];
-            const isHighlighted = f === highlighted;
-            return (
-              <div
-                key={f}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                  isHighlighted
-                    ? 'bg-primary/8 border border-primary/20'
-                    : 'bg-card border border-border'
-                }`}
-              >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                  isHighlighted ? 'bg-primary' : 'bg-primary/10'
-                }`}>
-                  <Check className={`w-3.5 h-3.5 ${isHighlighted ? 'text-white' : 'text-primary'}`} />
-                </div>
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-base shrink-0">{config.icon}</span>
-                  <span className={`text-sm font-medium truncate ${
-                    isHighlighted ? 'font-bold text-primary' : 'text-muted-foreground'
-                  }`}>
-                    {config.displayName}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-1.5 mb-4">
+          {PREMIUM_HIGHLIGHTS.map((f) => (
+            <div key={f.label} className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="text-primary">{f.icon}</span>
+              <span>{f.label}</span>
+            </div>
+          ))}
         </div>
 
         <button
           onClick={() => setShowPaywall(true)}
-          className="flex items-center gap-2.5 px-8 py-3.5 rounded-2xl font-bold text-base text-white active:scale-95 transition-all duration-150 shadow-primary"
-          style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
+          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-semibold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity"
         >
-          <Sparkles className="w-4 h-4" />
           Upgrade to Premium
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 
-      <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showPaywall && (
+        <PaywallScreen
+          onClose={() => setShowPaywall(false)}
+          featureName={featureName}
+        />
+      )}
     </>
   );
 }

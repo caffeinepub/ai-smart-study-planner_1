@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import AdvancedFocusSettings, { AmbientSound } from '../components/AdvancedFocusSettings';
-import { useSubscriptionContext } from '../contexts/SubscriptionContext';
-import { usePremiumTestingMode } from '../hooks/usePremiumTestingMode';
-import { useGetCallerUserProfile } from '../hooks/useQueries';
+import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
 import { useFocusSessionHistory } from '../hooks/useFocusSessionHistory';
 import { useAmbientSound } from '../hooks/useAmbientSound';
 
@@ -13,12 +11,7 @@ const DEFAULT_WORK_MINUTES = 25;
 const DEFAULT_BREAK_MINUTES = 5;
 
 export default function FocusMode() {
-  const { isPremium: isSubscriptionPremium } = useSubscriptionContext();
-  const { isPremiumTestingEnabled } = usePremiumTestingMode();
-  const { data: userProfile } = useGetCallerUserProfile();
-  const isBackendPremium = userProfile?.userTier === 'premium';
-  const isPremium = isPremiumTestingEnabled || isBackendPremium || isSubscriptionPremium;
-
+  const { isPremium } = useConsolidatedPremiumStatus();
   const { addSession } = useFocusSessionHistory();
 
   // Custom intervals (premium)
@@ -58,7 +51,6 @@ export default function FocusMode() {
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   const handlePhaseComplete = useCallback((completedPhase: Phase) => {
-    // Log session to history
     if (sessionStartRef.current !== null) {
       const duration = Math.round((Date.now() - sessionStartRef.current) / 1000);
       addSession({
@@ -166,7 +158,6 @@ export default function FocusMode() {
       {/* Timer Ring */}
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          {/* Glow effect */}
           <div
             className="absolute inset-0 rounded-full blur-2xl opacity-20 scale-75"
             style={{ background: phaseColor }}
@@ -174,8 +165,8 @@ export default function FocusMode() {
           <svg
             width={size}
             height={size}
-            className="-rotate-90 relative"
-            style={{ filter: 'drop-shadow(0 4px 16px rgba(99,102,241,0.15))' }}
+            className="relative drop-shadow-lg"
+            style={{ transform: 'rotate(-90deg)' }}
           >
             {/* Background track */}
             <circle
@@ -184,8 +175,8 @@ export default function FocusMode() {
               r={radius}
               fill="none"
               stroke={phaseColorLight}
-              strokeWidth="10"
-              className="dark:opacity-20"
+              strokeWidth={10}
+              className="opacity-30 dark:opacity-20"
             />
             {/* Progress arc */}
             <circle
@@ -194,51 +185,46 @@ export default function FocusMode() {
               r={radius}
               fill="none"
               stroke={phaseColor}
-              strokeWidth="10"
+              strokeWidth={10}
+              strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
+              style={{ transition: 'stroke-dashoffset 0.5s ease' }}
             />
           </svg>
+
           {/* Center content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-5xl font-bold tabular-nums tracking-tight text-foreground">
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center"
+            style={{ transform: 'none' }}
+          >
+            <span className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
               {formatTime(timeLeft)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground mt-1.5 capitalize">
-              {phase === 'work' ? 'Focus Time' : 'Break Time'}
+            <span className="text-xs font-semibold text-muted-foreground mt-1 uppercase tracking-widest">
+              {phase === 'work' ? 'Focus' : 'Break'}
             </span>
             {sessions > 0 && (
-              <div className="flex items-center gap-1 mt-2">
-                {Array.from({ length: Math.min(sessions, 4) }).map((_, i) => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary" />
-                ))}
-                {sessions > 4 && <span className="text-xs text-muted-foreground">+{sessions - 4}</span>}
-              </div>
+              <span className="text-xs text-primary font-semibold mt-1">
+                {sessions} session{sessions !== 1 ? 's' : ''} done
+              </span>
             )}
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-5">
-          {/* Reset */}
+        <div className="flex items-center gap-4">
           <button
             onClick={handleReset}
-            className="w-12 h-12 rounded-2xl glass-card flex items-center justify-center hover:brightness-[1.03] active:scale-90 transition-all duration-150"
+            className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-90 transition-all duration-150"
           >
             <RotateCcw className="w-5 h-5 text-muted-foreground" />
           </button>
 
-          {/* Play/Pause */}
           <button
             onClick={handlePlayPause}
-            className="w-18 h-18 rounded-2xl flex items-center justify-center active:scale-90 transition-all duration-150 shadow-primary"
-            style={{
-              width: '72px',
-              height: '72px',
-              background: `linear-gradient(135deg, ${phaseColor}, ${phase === 'work' ? '#8b5cf6' : '#a78bfa'})`,
-            }}
+            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-primary active:scale-90 transition-all duration-150"
+            style={{ background: `linear-gradient(135deg, ${phaseColor}, ${phaseColor}cc)` }}
           >
             {isRunning
               ? <Pause className="w-7 h-7 text-white" />
@@ -246,32 +232,16 @@ export default function FocusMode() {
             }
           </button>
 
-          {/* Session count */}
-          <div className="w-12 h-12 rounded-2xl glass-card flex flex-col items-center justify-center">
-            <span className="text-base font-bold text-foreground leading-none">{sessions}</span>
-            <span className="text-[9px] text-muted-foreground font-medium mt-0.5">done</span>
-          </div>
+          <div className="w-12 h-12" />
         </div>
-
-        <p className="text-xs text-muted-foreground font-medium">
-          {sessions === 0
-            ? 'Press play to start your focus session'
-            : `${sessions} session${sessions !== 1 ? 's' : ''} completed today 🎉`}
-        </p>
       </div>
 
-      {/* Advanced Focus Settings — Premium gated */}
+      {/* Advanced Settings (Premium) */}
       <AdvancedFocusSettings
         workMinutes={workMinutes}
         breakMinutes={breakMinutes}
-        onWorkMinutesChange={(v) => {
-          setWorkMinutes(v);
-          if (!isRunning && phase === 'work') setTimeLeft(v * 60);
-        }}
-        onBreakMinutesChange={(v) => {
-          setBreakMinutes(v);
-          if (!isRunning && phase === 'break') setTimeLeft(v * 60);
-        }}
+        onWorkMinutesChange={setWorkMinutes}
+        onBreakMinutesChange={setBreakMinutes}
         selectedSound={selectedSound}
         onSoundChange={setSelectedSound}
       />

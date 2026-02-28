@@ -147,7 +147,9 @@ export default function AIInsightsPanel() {
           </div>
         </div>
 
-        <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+        {showPaywall && (
+          <PaywallScreen onClose={() => setShowPaywall(false)} />
+        )}
       </>
     );
   }

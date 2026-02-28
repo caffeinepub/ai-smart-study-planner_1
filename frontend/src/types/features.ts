@@ -4,62 +4,52 @@ export type PremiumFeature =
   | 'unlimited_study_plans'
   | 'cloud_backup'
   | 'customizable_themes'
-  | 'ad_free_experience'
   | 'advanced_focus_mode';
 
 export interface FeatureConfig {
-  displayName: string;
+  name: string;
   description: string;
   icon: string;
 }
 
-export const PREMIUM_FEATURES: Record<PremiumFeature, FeatureConfig> = {
+export const FEATURE_CONFIG: Record<PremiumFeature, FeatureConfig> = {
   smart_study_insights: {
-    displayName: 'Smart Study Insights',
-    description: 'AI-powered recommendations based on your study patterns to maximize retention.',
+    name: 'Smart Study Insights',
+    description: 'AI-powered analysis of your study patterns and personalized recommendations.',
     icon: '🧠',
   },
   advanced_statistics: {
-    displayName: 'Advanced Statistics',
-    description: 'Deep analytics with charts, trends, and subject-level performance breakdowns.',
+    name: 'Advanced Statistics',
+    description: 'Detailed analytics and progress charts to track your performance over time.',
     icon: '📊',
   },
   unlimited_study_plans: {
-    displayName: 'Unlimited Study Plans',
-    description: 'Manage all your exams simultaneously with no limits on subjects or topics.',
+    name: 'Unlimited Study Plans',
+    description: 'Create and manage multiple exam study plans simultaneously.',
     icon: '📚',
   },
   cloud_backup: {
-    displayName: 'Cloud Backup',
-    description: 'Keep your study plans safe and synced across all your devices automatically.',
+    name: 'Cloud Backup',
+    description: 'Securely back up and restore your study data across devices.',
     icon: '☁️',
   },
   customizable_themes: {
-    displayName: 'Customizable Themes',
-    description: 'Personalize your app with beautiful color themes that match your style.',
+    name: 'Customizable Themes',
+    description: 'Personalize your study environment with beautiful color themes.',
     icon: '🎨',
   },
-  ad_free_experience: {
-    displayName: 'Ad-Free Experience',
-    description: 'Enjoy a clean, distraction-free study environment with no ads.',
-    icon: '✨',
-  },
   advanced_focus_mode: {
-    displayName: 'Advanced Focus Mode',
-    description: 'Custom intervals, ambient sounds, and session history for deeper focus.',
+    name: 'Advanced Focus Mode',
+    description: 'Ambient sounds, extended sessions, and distraction-free study environment.',
     icon: '🎯',
   },
 };
 
-export const ALL_PREMIUM_FEATURES: PremiumFeature[] = [
+export const PREMIUM_FEATURES: PremiumFeature[] = [
   'smart_study_insights',
   'advanced_statistics',
   'unlimited_study_plans',
   'cloud_backup',
   'customizable_themes',
-  'ad_free_experience',
   'advanced_focus_mode',
 ];
-
-// Keep legacy alias for any code that still references FEATURE_CONFIG
-export const FEATURE_CONFIG = PREMIUM_FEATURES;

@@ -1,33 +1,78 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Replace Studiora logo with uploaded custom image",
+  "title": "Implement Cloud Backup & Restore (Backup & Restore Settings Section)",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Replace existing logo with uploaded custom image in Layout header and LoginPage",
+      "summary": "Implement createBackup utility function that exports all user data as JSON and triggers Web Share API or file download",
       "acceptanceCriteria": [
-        "The uploaded image is saved as `frontend/public/assets/generated/studiora-logo.png`.",
-        "The sticky header in Layout.tsx renders the image as the Studiora logo (replacing any prior logo element).",
-        "The login/landing page (LoginPage.tsx) renders the same image as the app logo.",
-        "The logo image has appropriate alt text ('Studiora logo') and a sensible display size (e.g., h-8 or h-10 in the header, larger on the login page).",
-        "No broken image references or leftover old logo elements remain."
+        "Clicking 'Backup to Cloud' produces a valid studiora_backup.json file containing study plans, tasks, streak, companion state, and settings.",
+        "On supported browsers/devices the native share sheet opens with the file attached.",
+        "On browsers without Web Share API support the file downloads directly.",
+        "No HTTP request is made to the backend during backup."
       ],
       "file_operations": [
         {
-          "path": "frontend/public/assets/generated/studiora-logo.png",
+          "path": "frontend/src/utils/backup.ts",
           "operation": "create",
-          "description": "Save the uploaded custom logo image (open book with green sprout and blue/purple circular background) as the new Studiora logo asset at this exact workspace path: `frontend/public/assets/generated/studiora-logo.png`."
+          "description": "Create a new utility module exporting createBackup function. Collect all user data from localStorage and React Query cache (study plans from useQueries, tasks, daily progress from useLocalDailyProgress, streak from useLocalStreak, companion state from useStudyCompanion localStorage key, theme from useTheme, custom theme from useCustomTheme, subscription tier from useSubscription). Construct a complete JSON backup object with timestamp. Create a Blob from the JSON, then attempt navigator.share with the file if available; fall back to programmatic anchor download if unsupported. Return a promise that resolves when the share sheet appears or download completes."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Implement restoreBackup utility function that opens file picker, validates backup JSON, shows confirmation dialog, and restores app state",
+      "acceptanceCriteria": [
+        "Clicking 'Restore from Backup' opens the system file picker filtered to .json files.",
+        "A confirmation dialog appears before any data is overwritten.",
+        "After confirmation all app state (tasks, streak, companion, settings) reflects the backup data.",
+        "Invalid or corrupt files show a user-friendly error message and leave existing data untouched."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/backup.ts",
+          "operation": "modify",
+          "description": "Add restoreBackup function that programmatically creates and clicks a hidden <input type='file' accept='.json'> element. On file selection, read and parse the JSON. Validate required fields exist (exams, tasks, settings, etc.). Show a confirmation dialog using the browser's confirm() or a custom modal component with message 'Restoring will replace current data. Continue?'. On confirmation, write all data back to localStorage (overwriting study plans, tasks, streak, companion state, theme, subscription state). Invalidate all relevant React Query caches using queryClient.invalidateQueries to trigger refetch. Show success toast on completion. Show error toast if JSON is malformed or missing required fields, and do not modify any existing data."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add Backup & Restore section to Settings page with last backup timestamp, action buttons, success animation, and privacy notice",
+      "acceptanceCriteria": [
+        "Settings page contains a 'Backup & Restore' section with the ☁️ icon.",
+        "'Last Backup' shows a formatted timestamp after first backup and 'Never' before any backup.",
+        "Success message and animation appear for ~1.5 s after a backup completes.",
+        "Informational privacy text is visible below the buttons.",
+        "The section matches the calm, minimal visual language of the rest of Settings."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/Settings.tsx",
+          "operation": "modify",
+          "description": "Add a new Backup & Restore section below the existing settings sections. Display a ☁️ heading 'Backup & Restore'. Read last backup timestamp from localStorage key 'lastBackupTimestamp' and format it as a human-readable date/time string, or display 'Never' if absent. Render two buttons: 'Backup to Cloud' and 'Restore from Backup'. Wire 'Backup to Cloud' to call createBackup from frontend/src/utils/backup.ts; on success, update localStorage 'lastBackupTimestamp' to the current ISO string and display a success message 'Backup Successful — Saved to your cloud storage.' with a subtle fade-in animation and checkmark icon for ~1.5 seconds. Wire 'Restore from Backup' to call restoreBackup. Below the buttons, display the informational text: 'Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.' Style the section to match the existing calm and minimal design using card containers and consistent spacing."
         },
         {
-          "path": "frontend/src/components/Layout.tsx",
-          "operation": "modify",
-          "description": "Replace the current logo element in the sticky header with an <img> tag that references `/assets/generated/studiora-logo.png` as the src. Set appropriate alt text to 'Studiora logo' and apply a height class (h-8 or h-10) for proper sizing in the header. Remove any previous SVG-based or other logo implementations to avoid duplicates."
-        },
+          "path": "frontend/src/hooks/useBackupRestore.ts",
+          "operation": "create",
+          "description": "Create a custom React hook useBackupRestore that wraps createBackup and restoreBackup functions from frontend/src/utils/backup.ts. Manage local state for last backup timestamp (read from localStorage on mount), loading state during backup/restore operations, and success/error messages. Expose functions: handleBackup (calls createBackup, updates timestamp, shows success), handleRestore (calls restoreBackup, invalidates queries). Return { lastBackup, isBackingUp, isRestoring, successMessage, errorMessage, handleBackup, handleRestore, clearMessages }."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Gate Backup & Restore section behind premium status using isPremium check from premiumCheck.ts",
+      "acceptanceCriteria": [
+        "Free users see a lock indicator and upgrade message instead of functional backup buttons.",
+        "Premium and trial users see fully functional Backup and Restore buttons.",
+        "Clicking the upgrade prompt opens the PaywallScreen modal."
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/pages/LoginPage.tsx",
+          "path": "frontend/src/pages/Settings.tsx",
           "operation": "modify",
-          "description": "Replace the current logo element on the login/landing page with an <img> tag that references `/assets/generated/studiora-logo.png` as the src. Set appropriate alt text to 'Studiora logo' and apply a larger height class (e.g., h-16, h-20, or h-24) for prominent display on the landing page. Remove any previous SVG-based or other logo implementations to avoid duplicates."
+          "description": "Wrap the Backup & Restore section content with a premium status check using isPremium from frontend/src/utils/premiumCheck.ts. For free-tier users, display the section heading with a 🔒 lock icon and an upgrade prompt message: 'Cloud Backup is a Premium feature. Upgrade to back up your data.' Render the UpgradePrompt component (frontend/src/components/UpgradePrompt.tsx) below the message to allow users to open the PaywallScreen modal. For premium and trial users, render the fully functional Backup and Restore buttons with no restrictions. Ensure the lock indicator and upgrade message are styled consistently with the rest of the Settings page."
         }
       ]
     }

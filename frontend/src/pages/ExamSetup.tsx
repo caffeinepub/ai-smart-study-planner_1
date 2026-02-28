@@ -38,7 +38,6 @@ export default function ExamSetup() {
   const isAuthenticated = !!identity;
   const hasExistingExam = exams.length >= 1;
 
-  // Only lock if: has existing exam AND confirmed non-premium AND not guest AND not still loading premium status
   const isLocked = hasExistingExam && !isPremium && !isGuestMode && !premiumLoading;
 
   const addSubject = () => {
@@ -88,7 +87,6 @@ export default function ExamSetup() {
       return;
     }
 
-    // Guard: for non-guest users, require authentication before calling backend
     if (!isGuestMode) {
       if (isInitializing || actorFetching) {
         setErrorMessage('Still connecting to the network. Please wait a moment and try again.');
@@ -116,11 +114,9 @@ export default function ExamSetup() {
         subjects: validSubjects.map((s) => ({ name: s.name.trim(), topics: s.topics })),
       });
 
-      // Navigate to dashboard on success
       navigate({ to: '/dashboard' });
     } catch (err: any) {
       const rawMessage: string = err?.message ?? '';
-      // Provide a friendlier message for common backend errors
       let message = 'Failed to create study plan. Please try again.';
       if (rawMessage.includes('Actor not available')) {
         message = 'Unable to connect to the network. Please check your connection and try again.';
@@ -135,7 +131,6 @@ export default function ExamSetup() {
     }
   };
 
-  // Show a loading skeleton while we determine premium status for users with existing exams
   if (hasExistingExam && premiumLoading && !isGuestMode) {
     return (
       <div className="p-5 space-y-6">
@@ -170,7 +165,6 @@ export default function ExamSetup() {
             </div>
           ))}
         </div>
-        {/* Loading indicator while checking premium status */}
         <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
           <span className="w-4 h-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
           Checking subscription status…
@@ -181,7 +175,6 @@ export default function ExamSetup() {
 
   return (
     <div className="p-5 space-y-6">
-      {/* Header */}
       <div className="space-y-0.5">
         <h1 className="text-2xl font-bold tracking-tight">Study Plan Setup</h1>
         <p className="text-muted-foreground text-sm">
@@ -189,7 +182,6 @@ export default function ExamSetup() {
         </p>
       </div>
 
-      {/* Existing exams */}
       {exams.length > 0 && (
         <div className="space-y-2.5">
           <h2 className="font-bold text-xs text-muted-foreground uppercase tracking-wider">
@@ -221,7 +213,6 @@ export default function ExamSetup() {
         </div>
       )}
 
-      {/* Locked state for free users with existing exam */}
       {isLocked ? (
         <div className="rounded-2xl border-2 border-dashed border-primary/25 p-7 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -242,7 +233,6 @@ export default function ExamSetup() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Not authenticated warning for non-guest users */}
           {!isGuestMode && !isAuthenticated && !isInitializing && (
             <div className="p-4 rounded-2xl bg-primary/8 border border-primary/20 flex items-start gap-3">
               <LogIn className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -252,7 +242,6 @@ export default function ExamSetup() {
             </div>
           )}
 
-          {/* Error message */}
           {errorMessage && (
             <div className="p-4 rounded-2xl bg-destructive/8 border border-destructive/20 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -260,7 +249,6 @@ export default function ExamSetup() {
             </div>
           )}
 
-          {/* Exam Name */}
           <div className="space-y-2">
             <Label htmlFor="examName" className="text-sm font-semibold">Exam Name</Label>
             <Input
@@ -301,7 +289,6 @@ export default function ExamSetup() {
             </div>
           </div>
 
-          {/* Subjects */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">Subjects & Topics</Label>
@@ -335,7 +322,6 @@ export default function ExamSetup() {
                   )}
                 </div>
 
-                {/* Topics chips */}
                 {subject.topics.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {subject.topics.map((topic, tIdx) => (
@@ -406,7 +392,9 @@ export default function ExamSetup() {
         </form>
       )}
 
-      <PaywallScreen open={showPaywall} onClose={() => setShowPaywall(false)} />
+      {showPaywall && (
+        <PaywallScreen onClose={() => setShowPaywall(false)} />
+      )}
     </div>
   );
 }

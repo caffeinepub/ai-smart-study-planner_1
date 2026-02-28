@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSaveCallerUserProfile } from '../hooks/useQueries';
-import { UserTier } from '../backend';
 import { useGuestMode } from '../hooks/useGuestMode';
 
 interface ProfileSetupModalProps {
@@ -31,7 +30,7 @@ export default function ProfileSetupModal({ open, onComplete }: ProfileSetupModa
     if (!name.trim()) return;
     await saveProfile.mutateAsync({
       name: name.trim(),
-      userTier: UserTier.free,
+      userTier: 'free',
       guestMode: false,
       deviceId: undefined,
     });

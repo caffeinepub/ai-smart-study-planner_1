@@ -1,25 +1,80 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-27T14:59:00.360Z",
-  "summary": "The diff implements logo replacement in Layout.tsx and LoginPage.tsx using a custom image, with appropriate alt text and sizing. However, the image is referenced via a raw upload path (/assets/file_0000000068a87208913cc2e62995fbaa.png) rather than the required canonical path (/assets/generated/studiora-logo.png), and there is no evidence that the image was saved as frontend/public/assets/generated/studiora-logo.png.",
+  "generatedAt": "2026-02-28T07:21:05.321Z",
+  "summary": "The diff implements most of the Backup & Restore feature including the createBackup utility (REQ-1), restoreBackup utility (REQ-2), Settings page section (REQ-3), and premium gating (REQ-4). However, several specific requirements and acceptance criteria have gaps or are not clearly evidenced in the truncated diff.",
   "missing_requirements": [
     {
-      "id": "REQ-1",
-      "requirement": "The uploaded image must be saved as frontend/public/assets/generated/studiora-logo.png and referenced via that path in Layout.tsx and LoginPage.tsx.",
-      "reason": "Both Layout.tsx and LoginPage.tsx reference the image at /assets/file_0000000068a87208913cc2e62995fbaa.png instead of /assets/generated/studiora-logo.png. No new file was added under frontend/public/assets/generated/studiora-logo.png (ADDED FILES: none). The acceptance criterion requiring the canonical asset path is not met.",
+      "id": "REQ-3",
+      "requirement": "Success message and checkmark animation lasting ~1.5 s.",
+      "reason": "The useBackupRestore hook auto-clears the success message after 3000ms (3 seconds), not ~1.5 s as specified by the requirement.",
       "evidence": [
-        "frontend/src/components/Layout.tsx",
-        "frontend/src/pages/LoginPage.tsx"
+        "frontend/src/hooks/useBackupRestore.ts"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "The confirmation dialog must display the exact message 'Restoring will replace current data. Continue?'",
+      "reason": "The Settings.tsx diff is truncated and the exact dialog message text is not visible in the provided content. Cannot confirm the exact string is used.",
+      "evidence": [
+        "frontend/src/pages/Settings.tsx"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Invalid or corrupt files show a user-friendly error message and leave existing data untouched.",
+      "reason": "The hook comment states 'Since restoreFromFile already wrote to localStorage on success', suggesting data is written before the confirmation dialog is shown, raising concern that data could be overwritten before user confirms. The separation between parse/validate and write steps is unclear from the truncated diff.",
+      "evidence": [
+        "frontend/src/hooks/useBackupRestore.ts",
+        "frontend/src/utils/backup.ts"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Clicking the upgrade prompt opens the PaywallScreen modal for free users on the Backup & Restore section.",
+      "reason": "The Settings.tsx diff is truncated and the premium-gated Backup & Restore section rendering with lock indicator, upgrade prompt, and PaywallScreen integration for backup specifically is not visible in the provided output.",
+      "evidence": [
+        "frontend/src/pages/Settings.tsx"
+      ]
+    },
+    {
+      "id": "REQ-1",
+      "requirement": "Backup must include custom theme data from useCustomTheme.",
+      "reason": "The backup.ts BACKUP_KEYS list includes 'app_theme_preset' as themePreset but there is no explicit evidence that the full custom theme data key used by useCustomTheme is captured. The exact localStorage key used by useCustomTheme is not confirmed.",
+      "evidence": [
+        "frontend/src/utils/backup.ts"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.92,
+  "hallucinated_features": [
+    {
+      "description": "Backup includes additional fields not specified in REQ-1: focusSessionHistory, userDisplayName, paywallDismissed, subscriptionIsActive, trialStartTimestamp, trialUsed.",
+      "reason": "REQ-1 specifies backing up study plans/tasks, daily progress, study streak, companion growth state, theme, custom theme, and subscription tier only. These extra fields were not requested.",
+      "evidence": [
+        "frontend/src/utils/backup.ts"
+      ]
+    },
+    {
+      "description": "Error handling uses an inline errorMessage state that auto-clears after 5 seconds rather than a toast notification.",
+      "reason": "REQ-2 specifies showing an error toast for malformed files. The implementation uses an inline errorMessage state displayed in the UI rather than a toast, which differs from the specified UX pattern.",
+      "evidence": [
+        "frontend/src/hooks/useBackupRestore.ts"
+      ]
+    },
+    {
+      "description": "A restore success message ('Data restored successfully from your backup file.') is shown after restore completes.",
+      "reason": "REQ-2 does not specify a success message for restore. Only REQ-3 specifies a success message, and only for backup. Adding a restore success message was not requested.",
+      "evidence": [
+        "frontend/src/hooks/useBackupRestore.ts"
+      ]
+    }
+  ],
+  "confidence": 0.62,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/Layout.tsx",
-    "frontend/src/pages/LoginPage.tsx",
+    "frontend/src/hooks/useBackupRestore.ts",
+    "frontend/src/pages/Settings.tsx",
+    "frontend/src/utils/backup.ts",
     "project_state.json"
   ]
 }
