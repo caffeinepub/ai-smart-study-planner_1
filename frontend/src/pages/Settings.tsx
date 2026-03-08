@@ -27,7 +27,6 @@ import {
   LogIn,
   Crown,
   Star,
-  Clock,
   Cloud,
   CloudDownload,
   Lock,
@@ -43,7 +42,8 @@ import { Separator } from '@/components/ui/separator';
 
 export default function Settings() {
   const { identity, login, clear, loginStatus } = useInternetIdentity();
-  const { subscription, cancelSubscription } = useSubscriptionContext();
+  // Fixed: destructure only what exists in the new SubscriptionContext (no 'subscription' object)
+  const { isPremium: ctxIsPremium, currentPlan, cancelSubscription } = useSubscriptionContext();
   const { isPremium } = useConsolidatedPremiumStatus();
   const { isGuestMode } = useGuestMode();
   const { theme, toggleTheme } = useTheme();
@@ -115,27 +115,12 @@ export default function Settings() {
     handleRestore(confirmRestore);
   };
 
-  const { trialActive, trialUsed, trialDaysRemaining, trialExpiresAt } = subscription;
-
+  // Derive subscription label from currentPlan (replaces old subscription.tier)
   const getSubscriptionLabel = () => {
-    if (subscription.tier === 'monthly' && subscription.isActive) return 'Monthly Premium';
-    if (subscription.tier === 'yearly' && subscription.isActive) return 'Yearly Premium';
-    if (subscription.tier === 'trial' && trialActive) return `Trial — ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left`;
-    if (trialUsed && !trialActive) return 'Trial Ended';
+    if (currentPlan === 'monthly' && ctxIsPremium) return 'Monthly Premium';
+    if (currentPlan === 'yearly' && ctxIsPremium) return 'Yearly Premium';
     return 'Free Plan';
   };
-
-  const getTrialStatusText = () => {
-    if (trialActive && trialExpiresAt) {
-      return `Trial active — expires ${trialExpiresAt.toLocaleDateString()} (${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} remaining)`;
-    }
-    if (trialUsed && !trialActive) {
-      return 'Your free trial has ended. Upgrade to continue premium access.';
-    }
-    return null;
-  };
-
-  const trialStatusText = getTrialStatusText();
 
   const formatBackupDate = (date: Date) => {
     return date.toLocaleString(undefined, {
@@ -211,7 +196,9 @@ export default function Settings() {
                   <p className="text-sm font-medium text-foreground">
                     {isGuestMode ? 'Guest Mode' : 'Not logged in'}
                   </p>
-                  <p className="text-xs text-muted-foreground">Login to sync your data</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sync your progress across devices using Backup &amp; Restore.
+                  </p>
                 </div>
                 <Button
                   size="sm"
@@ -282,22 +269,6 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Trial Status */}
-          {trialStatusText && (
-            <div className={`flex items-start gap-2 p-3 rounded-xl text-xs ${
-              trialActive
-                ? 'bg-primary/10 text-primary'
-                : 'bg-destructive/10 text-destructive'
-            }`}>
-              {trialActive ? (
-                <Clock className="w-4 h-4 shrink-0 mt-0.5" />
-              ) : (
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              )}
-              <span>{trialStatusText}</span>
-            </div>
-          )}
-
           {!isPremium && (
             <Button
               onClick={() => setShowPaywall(true)}
@@ -308,19 +279,24 @@ export default function Settings() {
             </Button>
           )}
 
-          {isPremium && (subscription.tier === 'monthly' || subscription.tier === 'yearly') && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={cancelSubscription}
-              className="w-full text-muted-foreground"
-            >
-              Cancel Subscription
-            </Button>
+          {isPremium && (currentPlan === 'monthly' || currentPlan === 'yearly') && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Manage your subscription via Google Play. Cancel anytime from the Play Store.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelSubscription}
+                className="w-full text-muted-foreground"
+              >
+                Cancel Subscription Locally
+              </Button>
+            </div>
           )}
         </div>
 
-        {/* ── Backup & Restore Section ─────────────────────────────────────── */}
+        {/* Backup & Restore Section */}
         <div className="glass-card rounded-2xl p-5 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -370,9 +346,9 @@ export default function Settings() {
                 </span>
               </div>
 
-              {/* Success message with animation */}
+              {/* Success message */}
               {successMessage && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-700 dark:text-green-400 animate-in fade-in slide-in-from-top-1 duration-300">
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-700 dark:text-green-400">
                   <CheckCircle className="w-4 h-4 shrink-0 text-green-500" />
                   <span className="font-medium">{successMessage}</span>
                 </div>
@@ -380,7 +356,7 @@ export default function Settings() {
 
               {/* Error message */}
               {errorMessage && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
@@ -400,7 +376,7 @@ export default function Settings() {
                     <Cloud className="w-4 h-4" />
                   )}
                   <span className="text-sm">
-                    {isBackingUp ? 'Saving…' : 'Backup to Cloud'}
+                    {isBackingUp ? 'Saving…' : 'Backup'}
                   </span>
                 </Button>
 
@@ -416,7 +392,7 @@ export default function Settings() {
                     <CloudDownload className="w-4 h-4" />
                   )}
                   <span className="text-sm">
-                    {isRestoring ? 'Restoring…' : 'Restore from Backup'}
+                    {isRestoring ? 'Restoring…' : 'Restore'}
                   </span>
                 </Button>
               </div>
@@ -450,6 +426,22 @@ export default function Settings() {
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-muted-foreground py-2">
+          <p>
+            © {new Date().getFullYear()} Studiora. Built with{' '}
+            <span className="text-red-500">♥</span> using{' '}
+            <a
+              href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(typeof window !== 'undefined' ? window.location.hostname : 'studiora')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              caffeine.ai
+            </a>
+          </p>
+        </div>
       </div>
 
       {/* Restore confirmation dialog */}
@@ -470,9 +462,8 @@ export default function Settings() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {showPaywall && (
-        <PaywallScreen onClose={() => setShowPaywall(false)} />
-      )}
+      {/* Fixed: PaywallScreen now requires isOpen prop */}
+      <PaywallScreen isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
     </div>
   );
 }

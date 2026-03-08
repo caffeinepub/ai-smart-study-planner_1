@@ -129,6 +129,10 @@ export interface _SERVICE {
     { 'streak' : bigint, 'totalTasks' : bigint, 'completedTasks' : bigint }
   >,
   'getLatestBackup' : ActorMethod<[], [] | [BackupData]>,
+  /**
+   * / Returns the premium status for the caller.
+   */
+  'getPremiumStatus' : ActorMethod<[], boolean>,
   'getStudyStreak' : ActorMethod<[bigint], bigint>,
   'getTodayGuestTasks' : ActorMethod<[string, bigint], Array<DailyTask>>,
   'getTodayTasks' : ActorMethod<[bigint], Array<DailyTask>>,
@@ -150,6 +154,10 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'startGuestTrial' : ActorMethod<[string], undefined>,
   'startTrial' : ActorMethod<[], undefined>,
+  /**
+   * / Stores the given premium status for the caller.
+   */
+  'storePremiumStatus' : ActorMethod<[boolean], undefined>,
   'submitExamSetup' : ActorMethod<[ExamSetup], bigint>,
   'submitGuestExamSetup' : ActorMethod<[string, ExamSetup], bigint>,
   'upgradeGuestToPremium' : ActorMethod<[string], undefined>,

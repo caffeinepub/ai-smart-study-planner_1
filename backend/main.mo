@@ -9,13 +9,35 @@ import Principal "mo:core/Principal";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
-
-
+import Iter "mo:core/Iter";
 
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
   include MixinStorage();
+
+  // ── Premium Feature Support (New) ────────────────
+
+  let premiumStatus = Map.empty<Principal, Bool>();
+
+  /// Stores the given premium status for the caller.
+  public shared ({ caller }) func storePremiumStatus(isPremium : Bool) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can store premium status");
+    };
+    premiumStatus.add(caller, isPremium);
+  };
+
+  /// Returns the premium status for the caller.
+  public query ({ caller }) func getPremiumStatus() : async Bool {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Runtime.trap("Unauthorized: Only users can get premium status");
+    };
+    switch (premiumStatus.get(caller)) {
+      case (null) { false };
+      case (?isPremium) { isPremium };
+    };
+  };
 
   // ── Premium Features ──────────────────────────────────────────────────────
 

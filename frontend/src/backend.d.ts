@@ -108,6 +108,10 @@ export interface backendInterface {
         completedTasks: bigint;
     }>;
     getLatestBackup(): Promise<BackupData | null>;
+    /**
+     * / Returns the premium status for the caller.
+     */
+    getPremiumStatus(): Promise<boolean>;
     getStudyStreak(examId: bigint): Promise<bigint>;
     getTodayGuestTasks(deviceId: string, examId: bigint): Promise<Array<DailyTask>>;
     getTodayTasks(examId: bigint): Promise<Array<DailyTask>>;
@@ -130,6 +134,10 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     startGuestTrial(deviceId: string): Promise<void>;
     startTrial(): Promise<void>;
+    /**
+     * / Stores the given premium status for the caller.
+     */
+    storePremiumStatus(isPremium: boolean): Promise<void>;
     submitExamSetup(setup: ExamSetup): Promise<bigint>;
     submitGuestExamSetup(deviceId: string, setup: ExamSetup): Promise<bigint>;
     upgradeGuestToPremium(deviceId: string): Promise<void>;

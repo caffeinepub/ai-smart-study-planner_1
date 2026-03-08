@@ -1,90 +1,63 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
-import AdvancedFocusSettings, { AmbientSound } from '../components/AdvancedFocusSettings';
+import { Play, Pause, RotateCcw, Coffee, BookOpen, Settings } from 'lucide-react';
+import AdvancedFocusSettings, { type AmbientSound } from '../components/AdvancedFocusSettings';
 import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
-import { useFocusSessionHistory } from '../hooks/useFocusSessionHistory';
 import { useAmbientSound } from '../hooks/useAmbientSound';
 
-type Phase = 'work' | 'break';
+type TimerMode = 'work' | 'break';
 
-const DEFAULT_WORK_MINUTES = 25;
-const DEFAULT_BREAK_MINUTES = 5;
+const DEFAULT_WORK = 25;
+const DEFAULT_BREAK = 5;
 
 export default function FocusMode() {
   const { isPremium } = useConsolidatedPremiumStatus();
-  const { addSession } = useFocusSessionHistory();
 
-  // Custom intervals (premium)
-  const [workMinutes, setWorkMinutes] = useState(DEFAULT_WORK_MINUTES);
-  const [breakMinutes, setBreakMinutes] = useState(DEFAULT_BREAK_MINUTES);
-  const [selectedSound, setSelectedSound] = useState<AmbientSound>('none');
-
-  // Ambient sound playback — only active when premium and a sound is selected
-  const activeSound: AmbientSound = isPremium ? selectedSound : 'none';
-  useAmbientSound(activeSound);
-
-  const [phase, setPhase] = useState<Phase>('work');
-  const [timeLeft, setTimeLeft] = useState(workMinutes * 60);
+  const [workDuration, setWorkDuration] = useState(DEFAULT_WORK);
+  const [breakDuration, setBreakDuration] = useState(DEFAULT_BREAK);
+  const [mode, setMode] = useState<TimerMode>('work');
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_WORK * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [sessions, setSessions] = useState(0);
+  const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeSound, setActiveSound] = useState<AmbientSound>('none');
+  const [sessionHistory, setSessionHistory] = useState<{ duration: number; completedAt: string }[]>([]);
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Track session start time for history
-  const sessionStartRef = useRef<number | null>(null);
-  const sessionPhaseRef = useRef<Phase>('work');
+  // Gate ambient sound to premium users only
+  const gatedSound: AmbientSound = isPremium ? activeSound : 'none';
+  useAmbientSound(gatedSound);
 
-  // Sync timeLeft when intervals change (only when not running)
+  const totalSeconds = mode === 'work' ? workDuration * 60 : breakDuration * 60;
+  const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
+
+  const resetTimer = useCallback(() => {
+    setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setTimeLeft(mode === 'work' ? workDuration * 60 : breakDuration * 60);
+  }, [mode, workDuration, breakDuration]);
+
   useEffect(() => {
-    if (!isRunning) {
-      setTimeLeft(phase === 'work' ? workMinutes * 60 : breakMinutes * 60);
-    }
-  }, [workMinutes, breakMinutes, phase, isRunning]);
-
-  const totalTime = phase === 'work' ? workMinutes * 60 : breakMinutes * 60;
-  const progress = ((totalTime - timeLeft) / totalTime) * 100;
-
-  const size = 240;
-  const radius = 100;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  const handlePhaseComplete = useCallback((completedPhase: Phase) => {
-    if (sessionStartRef.current !== null) {
-      const duration = Math.round((Date.now() - sessionStartRef.current) / 1000);
-      addSession({
-        timestamp: sessionStartRef.current,
-        durationSeconds: duration,
-        phase: completedPhase,
-      });
-      sessionStartRef.current = null;
-    }
-
-    if (completedPhase === 'work') {
-      setSessions((s) => s + 1);
-      setPhase('break');
-      setTimeLeft(breakMinutes * 60);
-      sessionPhaseRef.current = 'break';
-    } else {
-      setPhase('work');
-      setTimeLeft(workMinutes * 60);
-      sessionPhaseRef.current = 'work';
-    }
-  }, [addSession, workMinutes, breakMinutes]);
+    resetTimer();
+  }, [workDuration, breakDuration, mode]);
 
   useEffect(() => {
     if (isRunning) {
-      if (sessionStartRef.current === null) {
-        sessionStartRef.current = Date.now();
-        sessionPhaseRef.current = phase;
-      }
       intervalRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(intervalRef.current!);
             setIsRunning(false);
-            handlePhaseComplete(sessionPhaseRef.current);
+            if (mode === 'work') {
+              setSessionsCompleted((c) => c + 1);
+              setSessionHistory((h) => [
+                { duration: workDuration, completedAt: new Date().toLocaleTimeString() },
+                ...h,
+              ]);
+              setMode('break');
+            } else {
+              setMode('work');
+            }
             return 0;
           }
           return prev - 1;
@@ -96,155 +69,127 @@ export default function FocusMode() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, handlePhaseComplete]);
+  }, [isRunning, mode, workDuration]);
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  };
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-  const handleReset = () => {
-    setIsRunning(false);
-    sessionStartRef.current = null;
-    setPhase('work');
-    setTimeLeft(workMinutes * 60);
-  };
-
-  const handlePlayPause = () => {
-    if (!isRunning && sessionStartRef.current === null) {
-      sessionStartRef.current = Date.now();
-      sessionPhaseRef.current = phase;
-    }
-    setIsRunning(!isRunning);
-  };
-
-  const phaseColor = phase === 'work' ? '#6366f1' : '#8b5cf6';
-  const phaseColorLight = phase === 'work' ? '#e0e7ff' : '#ede9fe';
+  const circumference = 2 * Math.PI * 54;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="p-5 space-y-6 pb-28">
-      {/* Header */}
-      <div className="space-y-0.5">
-        <h1 className="text-2xl font-bold tracking-tight">Focus Mode</h1>
-        <p className="text-muted-foreground text-sm">
-          Stay focused with the Pomodoro technique.
-        </p>
+    <div className="min-h-screen bg-background pb-24">
+      <div className="px-4 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Focus Mode</h1>
+            <p className="text-xs text-muted-foreground">
+              {sessionsCompleted} session{sessionsCompleted !== 1 ? 's' : ''} completed today
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`p-2 rounded-xl transition-colors ${showAdvanced ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground hover:text-foreground'}`}
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
-      {/* Phase Toggle */}
-      <div className="flex gap-2 p-1.5 glass-card rounded-2xl">
-        {(['work', 'break'] as Phase[]).map((p) => (
+      <div className="px-4 space-y-6">
+        {/* Mode toggle */}
+        <div className="flex gap-2 p-1 bg-muted rounded-xl">
           <button
-            key={p}
-            onClick={() => {
-              if (!isRunning) {
-                setPhase(p);
-                setTimeLeft(p === 'work' ? workMinutes * 60 : breakMinutes * 60);
-                sessionStartRef.current = null;
-              }
-            }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ${
-              phase === p
-                ? 'bg-primary/15 dark:bg-primary/25 text-primary shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
+            onClick={() => { setMode('work'); setIsRunning(false); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              mode === 'work' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
             }`}
           >
-            {p === 'work' ? '🎯 Focus' : '☕ Break'}
+            <BookOpen className="w-4 h-4" /> Focus
           </button>
-        ))}
-      </div>
-
-      {/* Timer Ring */}
-      <div className="flex flex-col items-center gap-6">
-        <div className="relative">
-          <div
-            className="absolute inset-0 rounded-full blur-2xl opacity-20 scale-75"
-            style={{ background: phaseColor }}
-          />
-          <svg
-            width={size}
-            height={size}
-            className="relative drop-shadow-lg"
-            style={{ transform: 'rotate(-90deg)' }}
+          <button
+            onClick={() => { setMode('break'); setIsRunning(false); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              mode === 'break' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
           >
-            {/* Background track */}
-            <circle
-              cx={cx}
-              cy={cy}
-              r={radius}
-              fill="none"
-              stroke={phaseColorLight}
-              strokeWidth={10}
-              className="opacity-30 dark:opacity-20"
-            />
-            {/* Progress arc */}
-            <circle
-              cx={cx}
-              cy={cy}
-              r={radius}
-              fill="none"
-              stroke={phaseColor}
-              strokeWidth={10}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-            />
-          </svg>
+            <Coffee className="w-4 h-4" /> Break
+          </button>
+        </div>
 
-          {/* Center content */}
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center"
-            style={{ transform: 'none' }}
-          >
-            <span className="text-4xl font-bold tabular-nums tracking-tight text-foreground">
-              {formatTime(timeLeft)}
-            </span>
-            <span className="text-xs font-semibold text-muted-foreground mt-1 uppercase tracking-widest">
-              {phase === 'work' ? 'Focus' : 'Break'}
-            </span>
-            {sessions > 0 && (
-              <span className="text-xs text-primary font-semibold mt-1">
-                {sessions} session{sessions !== 1 ? 's' : ''} done
-              </span>
-            )}
+        {/* Timer circle */}
+        <div className="flex flex-col items-center py-6">
+          <div className="relative w-36 h-36">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+              <circle
+                cx="60" cy="60" r="54"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="8"
+                className="text-muted/40"
+              />
+              <circle
+                cx="60" cy="60" r="54"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                className={mode === 'work' ? 'text-primary' : 'text-green-500'}
+                style={{ transition: 'stroke-dashoffset 1s linear' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-foreground tabular-nums">{timeStr}</span>
+              <span className="text-xs text-muted-foreground capitalize">{mode}</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-4 mt-6">
+            <button
+              onClick={resetTimer}
+              className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity"
+            >
+              {isRunning ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-0.5" />}
+            </button>
+            <div className="w-12 h-12" />
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleReset}
-            className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center hover:bg-muted/80 active:scale-90 transition-all duration-150"
-          >
-            <RotateCcw className="w-5 h-5 text-muted-foreground" />
-          </button>
-
-          <button
-            onClick={handlePlayPause}
-            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-primary active:scale-90 transition-all duration-150"
-            style={{ background: `linear-gradient(135deg, ${phaseColor}, ${phaseColor}cc)` }}
-          >
-            {isRunning
-              ? <Pause className="w-7 h-7 text-white" />
-              : <Play className="w-7 h-7 text-white ml-0.5" />
-            }
-          </button>
-
-          <div className="w-12 h-12" />
+        {/* Basic timer info */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="glass-card p-3 rounded-xl text-center">
+            <p className="text-lg font-bold text-foreground">{workDuration}</p>
+            <p className="text-xs text-muted-foreground">Focus mins</p>
+          </div>
+          <div className="glass-card p-3 rounded-xl text-center">
+            <p className="text-lg font-bold text-foreground">{breakDuration}</p>
+            <p className="text-xs text-muted-foreground">Break mins</p>
+          </div>
         </div>
-      </div>
 
-      {/* Advanced Settings (Premium) */}
-      <AdvancedFocusSettings
-        workMinutes={workMinutes}
-        breakMinutes={breakMinutes}
-        onWorkMinutesChange={setWorkMinutes}
-        onBreakMinutesChange={setBreakMinutes}
-        selectedSound={selectedSound}
-        onSoundChange={setSelectedSound}
-      />
+        {/* Advanced settings — premium gated */}
+        {showAdvanced && (
+          <AdvancedFocusSettings
+            workDuration={workDuration}
+            breakDuration={breakDuration}
+            onWorkDurationChange={setWorkDuration}
+            onBreakDurationChange={setBreakDuration}
+            activeSound={activeSound}
+            onSoundChange={setActiveSound}
+            sessionHistory={sessionHistory}
+          />
+        )}
+      </div>
     </div>
   );
 }

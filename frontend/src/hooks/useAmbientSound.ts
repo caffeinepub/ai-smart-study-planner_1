@@ -19,7 +19,8 @@ function createAmbientSound(
   const noiseBuffer = ctx.createBuffer(1, bufferSize, sampleRate);
   const data = noiseBuffer.getChannelData(0);
 
-  if (type === 'white_noise') {
+  // Fixed: use 'whitenoise' to match the updated AmbientSound type
+  if (type === 'whitenoise') {
     // Pure white noise
     for (let i = 0; i < bufferSize; i++) {
       data[i] = Math.random() * 2 - 1;
@@ -92,7 +93,6 @@ function createAmbientSound(
 
   } else {
     // cafe: pink noise (approximated) with bandpass to simulate room ambience
-    // Pink noise approximation using Voss-McCartney algorithm
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
     for (let i = 0; i < bufferSize; i++) {
       const white = Math.random() * 2 - 1;

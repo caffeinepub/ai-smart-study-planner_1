@@ -1,107 +1,172 @@
 {
   "kind": "build_request",
-  "title": "Implement Cloud Backup & Restore (Backup & Restore Settings Section)",
+  "title": "Configure Studiora Free/Premium Monetization with Google Play Billing",
   "projectName": "Studiora",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Implement a `createBackup` utility function that collects all user data into a single JSON object and triggers a file download named `studiora_backup.json`. Data to include: study plans and tasks (from useQueries/localStorage guest store), daily progress (useLocalDailyProgress), study streak (useLocalStreak), companion growth state (useStudyCompanion / localStorage), app settings (theme from useTheme, custom theme from useCustomTheme, subscription tier from useSubscription). After constructing the Blob, invoke the Web Share API (`navigator.share` with the file) if available so the device share sheet appears, allowing the user to save to Google Drive, iCloud Drive, Dropbox, OneDrive, or device storage; fall back to a programmatic anchor-click download if the Share API is unavailable. No data must be sent to any backend server.",
+      "text": "Update the subscription hook (useSubscription.ts) to define two subscription tiers — Free and Premium — with product identifiers 'studiora_monthly' ($3.99/month) and 'studiora_yearly' ($29.99/year). Premium status must be persisted locally in localStorage and restored on app launch. The hook must expose: current plan, isPremium flag, subscribeToPlan(productId), restorePurchases(), and cancelSubscription().",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-latest"
         ],
         "quotes": [
-          "Create a backup feature that exports user data as a file.",
-          "Export backup as a JSON file: filename format: studiora_backup.json",
-          "After backup creation: Open the device share menu."
+          "Connect plans to Play Store products: studiora_monthly, studiora_yearly",
+          "Sync premium status locally",
+          "Restore purchases automatically on reinstall"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking 'Backup to Cloud' produces a valid studiora_backup.json file containing study plans, tasks, streak, companion state, and settings.",
-        "On supported browsers/devices the native share sheet opens with the file attached.",
-        "On browsers without Web Share API support the file downloads directly.",
-        "No HTTP request is made to the backend during backup."
+        "useSubscription hook exposes isPremium, subscribeToPlan, restorePurchases, cancelSubscription",
+        "Premium status is stored and retrieved from localStorage",
+        "Product IDs 'studiora_monthly' and 'studiora_yearly' are used",
+        "restorePurchases() rehydrates premium state from localStorage on app init"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Implement a `restoreBackup` utility function that opens a hidden `<input type='file' accept='.json'>` element via programmatic click to let the user pick a backup file from local storage or a cloud-synced folder. After the user selects a file, parse the JSON, validate its structure, show a confirmation dialog with the message 'Restoring will replace current data. Continue?', and on confirmation write all fields back to localStorage (study plans, tasks, streak, companion state, settings) and reload or refresh all relevant React Query caches so the full app state is restored. Show an error toast if the file is malformed or missing required fields.",
+      "text": "Implement a simulated Google Play Billing integration layer in a new utility file (frontend/src/utils/googlePlayBilling.ts). Since the app runs as a web SPA on ICP and cannot call native Android APIs, this layer must: (1) simulate the billing flow with a Promise-based API matching Google Play Billing's interface (initBillingClient, launchBillingFlow, acknowledgePurchase, queryPurchases), (2) on successful purchase simulation, return a purchase token and set premium status, (3) on failure/cancellation, reject with an error message 'Payment cancelled or failed.', (4) queryPurchases must check localStorage for existing purchases to support restore flow.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-latest"
         ],
         "quotes": [
-          "Add restore feature allowing user to select a backup file.",
-          "Use device file picker to choose backup from local or cloud storage.",
-          "Before restoring: Show confirmation dialog: 'Restoring will replace current data. Continue?'"
+          "Use Google Play subscriptions (not external payments)",
+          "Handle purchase verification automatically",
+          "Restore purchases automatically on reinstall",
+          "Support subscription renewal and cancellation via Google Play"
         ]
       },
       "acceptanceCriteria": [
-        "Clicking 'Restore from Backup' opens the system file picker filtered to .json files.",
-        "A confirmation dialog appears before any data is overwritten.",
-        "After confirmation all app state (tasks, streak, companion, settings) reflects the backup data.",
-        "Invalid or corrupt files show a user-friendly error message and leave existing data untouched."
+        "googlePlayBilling.ts exports initBillingClient, launchBillingFlow, acknowledgePurchase, queryPurchases",
+        "launchBillingFlow resolves with purchase token on success and rejects on cancellation",
+        "queryPurchases checks localStorage for existing premium purchases",
+        "Integration is used by the PaywallScreen component"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add a 'Backup & Restore' section to the Settings page (`frontend/src/pages/Settings.tsx`) positioned as a clearly labelled card. The section must display: a ☁️ heading 'Backup & Restore', a 'Last Backup:' line showing a formatted date/time string stored in localStorage after each successful backup or 'Never' if no backup has been made, a 'Backup to Cloud' button, a 'Restore from Backup' button, and the informational text: 'Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.' After a successful backup update the stored timestamp and display the success message 'Backup Successful — Saved to your cloud storage.' with a subtle fade-in / checkmark animation lasting ~1.5 s. The section must maintain the existing calm and minimal visual style of the Settings page.",
+      "text": "Redesign the PaywallScreen component (frontend/src/components/PaywallScreen.tsx) to display: (1) title 'Upgrade to Studiora Premium', (2) a feature list showing all premium benefits with icons (Unlimited study plans, Advanced analytics, Smart study insights, Advanced focus modes, Detailed statistics, Custom themes, Export reports), (3) two plan selection cards — Monthly ($3.99/month) and Yearly ($29.99/year with 'Best Value' badge softly highlighted), (4) a primary CTA button 'Continue with Google Play' that triggers the billing flow for the selected plan, (5) a secondary 'Restore Purchases' button, (6) on successful purchase: unlock premium, close the paywall, and display a toast/confirmation message 'Premium unlocked. Stay focused.', (7) on failed purchase: display 'Payment cancelled or failed.' inline without closing the modal.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-latest"
         ],
         "quotes": [
-          "Create section: Settings → Backup & Restore",
-          "Last Backup: [date/time or 'Never']",
-          "Show last backup timestamp after successful backup.",
-          "Display success message: 'Backup Successful — Saved to your cloud storage.'"
+          "Show premium page with: Title: 'Upgrade to Studiora Premium'",
+          "Buttons: Select Monthly, Select Yearly",
+          "Primary button: 'Continue with Google Play'",
+          "After successful payment: unlock premium instantly, close paywall, show confirmation message: 'Premium unlocked. Stay focused.'"
         ]
       },
       "acceptanceCriteria": [
-        "Settings page contains a 'Backup & Restore' section with the ☁️ icon.",
-        "'Last Backup' shows a formatted timestamp after first backup and 'Never' before any backup.",
-        "Success message and animation appear for ~1.5 s after a backup completes.",
-        "Informational privacy text is visible below the buttons.",
-        "The section matches the calm, minimal visual language of the rest of Settings."
+        "PaywallScreen shows title 'Upgrade to Studiora Premium'",
+        "Feature list displays all 7 premium benefits with icons",
+        "Monthly and Yearly plan cards are both shown; Yearly has a soft 'Best Value' highlight",
+        "Prices shown: $3.99/month and $29.99/year",
+        "Tapping a plan card selects it and 'Continue with Google Play' triggers billing for that plan",
+        "'Restore Purchases' button calls restorePurchases() and shows result feedback",
+        "On success: paywall closes and toast shows 'Premium unlocked. Stay focused.'",
+        "On failure: inline message 'Payment cancelled or failed.' appears without closing modal"
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Gate the entire Backup & Restore section behind premium status using the existing `isPremium` check from `frontend/src/utils/premiumCheck.ts`. Free-tier users must see the section heading and a lock indicator (🔒) with an upgrade prompt message (e.g., 'Cloud Backup is a Premium feature. Upgrade to back up your data.') and the 'Backup to Cloud' / 'Restore from Backup' buttons must be disabled or replaced by an UpgradePrompt component. Premium users see the fully functional section. Trial users should also have access.",
+      "text": "Update the PremiumGate component (frontend/src/components/PremiumGate.tsx) and UpgradePrompt component (frontend/src/components/UpgradePrompt.tsx) to show a soft, non-blocking upgrade prompt when a free user attempts to access a premium feature. The prompt text must read: 'Available in Premium to enhance your study experience.' The prompt must open the PaywallScreen and must never block navigation away from the current page or prevent use of free features.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-latest"
         ],
         "quotes": [
-          "Cloud Backup is a Premium feature.",
-          "Free users see lock indicator with upgrade message.",
-          "Premium users can fully access Backup & Restore."
+          "If free user tries premium feature: Show soft upgrade prompt: 'Available in Premium to enhance your study experience.'",
+          "Do not block core planning features."
         ]
       },
       "acceptanceCriteria": [
-        "Free users see a lock indicator and upgrade message instead of functional backup buttons.",
-        "Premium and trial users see fully functional Backup and Restore buttons.",
-        "Clicking the upgrade prompt opens the PaywallScreen modal."
+        "PremiumGate shows soft prompt with text 'Available in Premium to enhance your study experience.' for non-premium users",
+        "Prompt opens PaywallScreen when tapped",
+        "Free features (study plans, tasks, schedule, basic timer, progress summary) remain fully accessible",
+        "No hard blocks or forced redirects for free users"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Update the backend (backend/main.mo) to store and expose premium subscription status per user. Add: (1) a storePremiumStatus(isPremium: Bool) update function, (2) a getPremiumStatus() query function. This allows the app to sync local premium state with the backend actor when the user is authenticated. Guest users rely on localStorage only.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Sync premium status locally",
+          "Handle purchase verification automatically"
+        ]
+      },
+      "acceptanceCriteria": [
+        "storePremiumStatus(isPremium: Bool) persists premium flag for the calling principal",
+        "getPremiumStatus() returns the stored premium flag for the calling principal",
+        "Default value is false for new users",
+        "Guest mode falls back to localStorage-only premium state"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Update the SubscriptionContext (frontend/src/contexts/SubscriptionContext.tsx) to incorporate the Google Play Billing utility and expose: isPremium, currentPlan ('free' | 'monthly' | 'yearly'), subscribeToPlan, restorePurchases, and cancelSubscription. On app initialization, automatically call queryPurchases to restore any existing premium status from localStorage, mirroring the 'restore on reinstall' behavior.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Restore purchases automatically on reinstall",
+          "Sync premium status locally"
+        ]
+      },
+      "acceptanceCriteria": [
+        "SubscriptionContext exposes isPremium, currentPlan, subscribeToPlan, restorePurchases, cancelSubscription",
+        "On provider mount, queryPurchases is called to restore any saved premium status",
+        "All premium-gated components consuming the context reflect restored state correctly"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Update free-tier feature access: ensure the following features are fully accessible without premium — create/manage study plans, add tasks and subjects, daily study schedule, basic progress tracking, basic focus timer (Pomodoro with standard intervals), local device storage, and progress summary. Ensure premium gates are only applied to: advanced analytics (AdvancedStatisticsSection), AI/smart insights (AIInsightsPanel, SmartStudyInsightsCard), advanced focus settings (AdvancedFocusSettings), custom themes beyond the first 3 (ThemeSelectorSection), and export study reports.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-latest"
+        ],
+        "quotes": [
+          "Free users can access: Create and manage study plans, Add tasks and subjects, Daily study schedule, Basic progress tracking, Focus timer (basic mode), Local device storage, View progress summary",
+          "Premium enhances productivity but does not block basic usage."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Study plan creation, task management, and daily schedule work fully in free tier",
+        "Basic Pomodoro timer works without premium",
+        "Progress summary page visible to free users",
+        "AdvancedStatisticsSection, AIInsightsPanel, AdvancedFocusSettings, premium themes, and export are gated",
+        "Gated features show soft UpgradePrompt, not hard blocks"
       ]
     }
   ],
   "constraints": [
-    "No user data may be stored on the app's backend servers during backup or restore.",
-    "Login must not be required to use backup or restore.",
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "All localStorage key names used for backup/restore must not conflict with existing keys used by other hooks."
+    "Do not use external payment processors (Stripe, PayPal, etc.) — billing must go through the simulated Google Play Billing layer with product IDs studiora_monthly and studiora_yearly",
+    "Core free features (study plans, tasks, schedule, basic timer, progress summary) must never be blocked",
+    "Premium upgrade prompts must be soft and non-aggressive in tone",
+    "Do not modify files in frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui"
   ],
   "nonGoals": [
-    "App-hosted or server-side cloud storage.",
-    "Automatic scheduled backups.",
-    "Backup encryption or password protection.",
-    "Versioned backup history (only the latest backup timestamp is tracked).",
-    "Backend schema changes or new Motoko endpoints for backup data."
+    "Server-side purchase receipt validation with Google Play Developer API",
+    "Native Android SDK integration (app runs as web SPA)",
+    "Family sharing or gifting plans",
+    "One-time purchase (lifetime) plan",
+    "Discounts or promotional codes",
+    "Changing the existing authentication or Internet Identity flow"
   ],
   "imageRequirements": {
     "required": [],

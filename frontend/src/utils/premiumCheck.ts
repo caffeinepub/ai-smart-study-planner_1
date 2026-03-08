@@ -1,19 +1,20 @@
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
-import { useActor } from '../hooks/useActor';
 
+/**
+ * Consolidated hook for checking premium status across the app.
+ * Derives isPremium from the SubscriptionContext (Google Play Billing state).
+ */
 export function useConsolidatedPremiumStatus() {
-  const { isPremium, subscription } = useSubscriptionContext();
-  const { isFetching: actorFetching } = useActor();
-
-  const isLoading = actorFetching;
+  const { isPremium, currentPlan, isLoading } = useSubscriptionContext();
 
   return {
     isPremium,
+    currentPlan,
     isLoading,
-    tier: subscription.tier,
-    trialActive: subscription.trialActive,
-    trialUsed: subscription.trialUsed,
-    trialExpiresAt: subscription.trialExpiresAt,
-    trialDaysRemaining: subscription.trialDaysRemaining,
+    // Legacy compatibility fields
+    trialActive: false,
+    trialUsed: false,
+    trialExpiresAt: null as Date | null,
+    trialDaysRemaining: 0,
   };
 }

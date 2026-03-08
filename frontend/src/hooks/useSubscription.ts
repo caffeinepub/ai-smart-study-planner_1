@@ -1,136 +1,153 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  initBillingClient,
+  launchBillingFlow,
+  acknowledgePurchase,
+  queryPurchases,
+  type ProductId,
+} from '../utils/googlePlayBilling';
 
-export type SubscriptionTier = 'free' | 'trial' | 'monthly' | 'yearly';
+export type SubscriptionPlan = 'free' | 'monthly' | 'yearly';
 
-export interface SubscriptionState {
-  tier: SubscriptionTier;
-  isActive: boolean;
-  trialActive: boolean;
-  trialUsed: boolean;
-  trialExpiresAt: Date | null;
-  trialDaysRemaining: number;
+export interface SubscriptionPlan_Info {
+  id: ProductId;
+  label: string;
+  price: string;
+  period: string;
+  savingsLabel?: string;
 }
 
-export interface SubscriptionProvider {
-  subscription: SubscriptionState;
-  subscribe: (plan: 'monthly' | 'yearly') => Promise<void>;
-  startTrial: () => Promise<void>;
-  cancelSubscription: () => Promise<void>;
-  isPremium: boolean;
-}
-
-const TRIAL_DURATION_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
-
-const STORAGE_KEYS = {
-  TIER: 'subscription_tier',
-  IS_ACTIVE: 'subscription_is_active',
-  TRIAL_START: 'trial_start_timestamp',
-  TRIAL_USED: 'trial_used',
+export const SUBSCRIPTION_PLANS: Record<'monthly' | 'yearly', SubscriptionPlan_Info> = {
+  monthly: {
+    id: 'studiora_monthly',
+    label: 'Monthly',
+    price: '$3.99',
+    period: 'per month',
+  },
+  yearly: {
+    id: 'studiora_yearly',
+    label: 'Yearly',
+    price: '$29.99',
+    period: 'per year',
+    savingsLabel: 'Best Value',
+  },
 };
 
-function computeTrialStatus(): { trialActive: boolean; trialUsed: boolean; trialExpiresAt: Date | null; trialDaysRemaining: number } {
-  const trialUsed = localStorage.getItem(STORAGE_KEYS.TRIAL_USED) === 'true';
-  const trialStartStr = localStorage.getItem(STORAGE_KEYS.TRIAL_START);
+const PLAN_KEY = 'studiora_subscription_plan';
+const PREMIUM_KEY = 'studiora_premium_status';
 
-  if (!trialStartStr) {
-    return { trialActive: false, trialUsed, trialExpiresAt: null, trialDaysRemaining: 0 };
+function readStoredPlan(): SubscriptionPlan {
+  try {
+    const val = localStorage.getItem(PLAN_KEY);
+    if (val === 'monthly' || val === 'yearly') return val;
+  } catch {
+    // ignore
   }
+  return 'free';
+}
 
-  const trialStart = parseInt(trialStartStr, 10);
-  const trialEnd = trialStart + TRIAL_DURATION_MS;
-  const now = Date.now();
-  const trialExpiresAt = new Date(trialEnd);
-
-  if (now < trialEnd) {
-    const msRemaining = trialEnd - now;
-    const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
-    return { trialActive: true, trialUsed: true, trialExpiresAt, trialDaysRemaining: daysRemaining };
-  } else {
-    return { trialActive: false, trialUsed: true, trialExpiresAt, trialDaysRemaining: 0 };
+function readStoredPremium(): boolean {
+  try {
+    return localStorage.getItem(PREMIUM_KEY) === 'true';
+  } catch {
+    return false;
   }
 }
 
-export function useSubscription(): SubscriptionProvider {
-  const [tier, setTier] = useState<SubscriptionTier>(() => {
-    const stored = localStorage.getItem(STORAGE_KEYS.TIER) as SubscriptionTier | null;
-    return stored || 'free';
-  });
+function writePremiumState(plan: SubscriptionPlan, isPremium: boolean): void {
+  try {
+    localStorage.setItem(PLAN_KEY, plan);
+    localStorage.setItem(PREMIUM_KEY, isPremium ? 'true' : 'false');
+  } catch {
+    // ignore
+  }
+}
 
-  const [isActive, setIsActive] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_KEYS.IS_ACTIVE) === 'true';
-  });
+export function useSubscription() {
+  const [isPremium, setIsPremium] = useState<boolean>(readStoredPremium);
+  const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan>(readStoredPlan);
+  const [isLoading, setIsLoading] = useState(false);
+  const [billingReady, setBillingReady] = useState(false);
 
-  const [trialStatus, setTrialStatus] = useState(() => computeTrialStatus());
-
-  // On mount and periodically, check if trial has expired
+  // Initialize billing client on mount
   useEffect(() => {
-    const checkExpiry = () => {
-      const status = computeTrialStatus();
-      setTrialStatus(status);
+    initBillingClient()
+      .then(() => setBillingReady(true))
+      .catch(() => setBillingReady(false));
+  }, []);
 
-      // If trial was active but now expired, revert to free
-      const currentTier = localStorage.getItem(STORAGE_KEYS.TIER) as SubscriptionTier | null;
-      if (currentTier === 'trial' && !status.trialActive) {
-        localStorage.setItem(STORAGE_KEYS.TIER, 'free');
-        localStorage.removeItem(STORAGE_KEYS.IS_ACTIVE);
-        setTier('free');
-        setIsActive(false);
+  /**
+   * Restores purchases from localStorage (simulates Google Play restore flow).
+   * Called automatically on mount and can be triggered manually.
+   */
+  const restorePurchases = useCallback(async (): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const purchases = await queryPurchases();
+      if (purchases.length > 0) {
+        // Find the most recent active purchase
+        const sorted = [...purchases].sort((a, b) => b.purchaseTime - a.purchaseTime);
+        const latest = sorted[0];
+        const plan: SubscriptionPlan =
+          latest.productId === 'studiora_yearly' ? 'yearly' : 'monthly';
+        setIsPremium(true);
+        setCurrentPlan(plan);
+        writePremiumState(plan, true);
+        return true;
+      } else {
+        // No purchases found — keep current state but don't downgrade if already premium
+        return false;
       }
-    };
-
-    checkExpiry();
-    const interval = setInterval(checkExpiry, 60 * 1000); // check every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const subscribe = useCallback(async (plan: 'monthly' | 'yearly') => {
-    // Simulated subscription — in production this would go through payment
-    localStorage.setItem(STORAGE_KEYS.TIER, plan);
-    localStorage.setItem(STORAGE_KEYS.IS_ACTIVE, 'true');
-    setTier(plan);
-    setIsActive(true);
-  }, []);
-
-  const startTrial = useCallback(async () => {
-    const status = computeTrialStatus();
-    if (status.trialUsed) {
-      throw new Error('Trial has already been used.');
+    } catch {
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-
-    const now = Date.now();
-    localStorage.setItem(STORAGE_KEYS.TRIAL_START, now.toString());
-    localStorage.setItem(STORAGE_KEYS.TRIAL_USED, 'true');
-    localStorage.setItem(STORAGE_KEYS.TIER, 'trial');
-    localStorage.setItem(STORAGE_KEYS.IS_ACTIVE, 'true');
-
-    setTier('trial');
-    setIsActive(true);
-    setTrialStatus(computeTrialStatus());
   }, []);
 
-  const cancelSubscription = useCallback(async () => {
-    localStorage.setItem(STORAGE_KEYS.TIER, 'free');
-    localStorage.removeItem(STORAGE_KEYS.IS_ACTIVE);
-    setTier('free');
-    setIsActive(false);
+  // Auto-restore on mount
+  useEffect(() => {
+    restorePurchases();
+  }, [restorePurchases]);
+
+  /**
+   * Subscribes to a plan using the Google Play Billing flow.
+   * Resolves on success, throws on failure/cancellation.
+   */
+  const subscribeToPlan = useCallback(async (productId: ProductId): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const { purchaseToken } = await launchBillingFlow(productId);
+      await acknowledgePurchase(purchaseToken);
+
+      const plan: SubscriptionPlan =
+        productId === 'studiora_yearly' ? 'yearly' : 'monthly';
+
+      setIsPremium(true);
+      setCurrentPlan(plan);
+      writePremiumState(plan, true);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const isPremium = (tier === 'monthly' || tier === 'yearly' || tier === 'trial') && isActive && (tier !== 'trial' || trialStatus.trialActive);
-
-  const subscription: SubscriptionState = {
-    tier,
-    isActive,
-    trialActive: trialStatus.trialActive,
-    trialUsed: trialStatus.trialUsed,
-    trialExpiresAt: trialStatus.trialExpiresAt,
-    trialDaysRemaining: trialStatus.trialDaysRemaining,
-  };
+  /**
+   * Cancels the subscription locally (does not cancel on Google Play —
+   * users must manage subscriptions via the Play Store).
+   */
+  const cancelSubscription = useCallback((): void => {
+    setIsPremium(false);
+    setCurrentPlan('free');
+    writePremiumState('free', false);
+  }, []);
 
   return {
-    subscription,
-    subscribe,
-    startTrial,
-    cancelSubscription,
     isPremium,
+    currentPlan,
+    isLoading,
+    billingReady,
+    subscribeToPlan,
+    restorePurchases,
+    cancelSubscription,
   };
 }

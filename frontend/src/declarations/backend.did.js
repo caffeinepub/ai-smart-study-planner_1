@@ -164,6 +164,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getLatestBackup' : IDL.Func([], [IDL.Opt(BackupData)], ['query']),
+  'getPremiumStatus' : IDL.Func([], [IDL.Bool], ['query']),
   'getStudyStreak' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
   'getTodayGuestTasks' : IDL.Func(
       [IDL.Text, IDL.Nat],
@@ -200,6 +201,7 @@ export const idlService = IDL.Service({
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'startGuestTrial' : IDL.Func([IDL.Text], [], []),
   'startTrial' : IDL.Func([], [], []),
+  'storePremiumStatus' : IDL.Func([IDL.Bool], [], []),
   'submitExamSetup' : IDL.Func([ExamSetup], [IDL.Nat], []),
   'submitGuestExamSetup' : IDL.Func([IDL.Text, ExamSetup], [IDL.Nat], []),
   'upgradeGuestToPremium' : IDL.Func([IDL.Text], [], []),
@@ -365,6 +367,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getLatestBackup' : IDL.Func([], [IDL.Opt(BackupData)], ['query']),
+    'getPremiumStatus' : IDL.Func([], [IDL.Bool], ['query']),
     'getStudyStreak' : IDL.Func([IDL.Nat], [IDL.Nat], ['query']),
     'getTodayGuestTasks' : IDL.Func(
         [IDL.Text, IDL.Nat],
@@ -401,6 +404,7 @@ export const idlFactory = ({ IDL }) => {
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'startGuestTrial' : IDL.Func([IDL.Text], [], []),
     'startTrial' : IDL.Func([], [], []),
+    'storePremiumStatus' : IDL.Func([IDL.Bool], [], []),
     'submitExamSetup' : IDL.Func([ExamSetup], [IDL.Nat], []),
     'submitGuestExamSetup' : IDL.Func([IDL.Text, ExamSetup], [IDL.Nat], []),
     'upgradeGuestToPremium' : IDL.Func([IDL.Text], [], []),

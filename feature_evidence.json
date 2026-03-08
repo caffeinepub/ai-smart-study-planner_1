@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-implement-a-createbackup-utility-function-that-collects-all-user-data-into-a-single-json-object-and-triggers-a-file-download-named-studiora-backup-json-data-to-include-study-plans-and-tasks-from-usequeries-localstorage-guest-store-daily-progress-uselocaldailyprogress-study-streak-uselocalstreak-companion-growth-state-usestudycompanion-localstorage-app-settings-theme-from-usetheme-custom-theme-from-usecustomtheme-subscription-tier-from-usesubscription-after-constructing-the-blob-invoke-the-web-share-api-navigator-share-with-the-file-if-available-so-the-device-share-sheet-appears-allowing-the-user-to-save-to-google-drive-icloud-drive-dropbox-onedrive-or-device-storage-fall-back-to-a-programmatic-anchor-click-download-if-the-share-api-is-unavailable-no-data-must-be-sent-to-any-backend-server",
-      "featureTitle": "Implement a `createBackup` utility function that collects all user data into a single JSON object and triggers a file download named `studiora_backup.json`. Data to include: study plans and tasks (from useQueries/localStorage guest store), daily progress (useLocalDailyProgress), study streak (useLocalStreak), companion growth state (useStudyCompanion / localStorage), app settings (theme from useTheme, custom theme from useCustomTheme, subscription tier from useSubscription). After constructing the Blob, invoke the Web Share API (`navigator.share` with the file) if available so the device share sheet appears, allowing the user to save to Google Drive, iCloud Drive, Dropbox, OneDrive, or device storage; fall back to a programmatic anchor-click download if the Share API is unavailable. No data must be sent to any backend server.",
+      "featureId": "feature-update-the-subscription-hook-usesubscription-ts-to-define-two-subscription-tiers-free-and-premium-with-product-identifiers-studiora-monthly-3-99-month-and-studiora-yearly-29-99-year-premium-status-must-be-persisted-locally-in-localstorage-and-restored-on-app-launch-the-hook-must-expose-current-plan-ispremium-flag-subscribetoplan-productid-restorepurchases-and-cancelsubscription",
+      "featureTitle": "Update the subscription hook (useSubscription.ts) to define two subscription tiers — Free and Premium — with product identifiers 'studiora_monthly' ($3.99/month) and 'studiora_yearly' ($29.99/year). Premium status must be persisted locally in localStorage and restored on app launch. The hook must expose: current plan, isPremium flag, subscribeToPlan(productId), restorePurchases(), and cancelSubscription().",
       "files": [
-        "frontend/src/utils/backup.ts"
+        "frontend/src/hooks/useSubscription.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -22,10 +22,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-implement-a-restorebackup-utility-function-that-opens-a-hidden-input-type-file-accept-json-element-via-programmatic-click-to-let-the-user-pick-a-backup-file-from-local-storage-or-a-cloud-synced-folder-after-the-user-selects-a-file-parse-the-json-validate-its-structure-show-a-confirmation-dialog-with-the-message-restoring-will-replace-current-data-continue-and-on-confirmation-write-all-fields-back-to-localstorage-study-plans-tasks-streak-companion-state-settings-and-reload-or-refresh-all-relevant-react-query-caches-so-the-full-app-state-is-restored-show-an-error-toast-if-the-file-is-malformed-or-missing-required-fields",
-      "featureTitle": "Implement a `restoreBackup` utility function that opens a hidden `<input type='file' accept='.json'>` element via programmatic click to let the user pick a backup file from local storage or a cloud-synced folder. After the user selects a file, parse the JSON, validate its structure, show a confirmation dialog with the message 'Restoring will replace current data. Continue?', and on confirmation write all fields back to localStorage (study plans, tasks, streak, companion state, settings) and reload or refresh all relevant React Query caches so the full app state is restored. Show an error toast if the file is malformed or missing required fields.",
+      "featureId": "feature-implement-a-simulated-google-play-billing-integration-layer-in-a-new-utility-file-frontend-src-utils-googleplaybilling-ts-since-the-app-runs-as-a-web-spa-on-icp-and-cannot-call-native-android-apis-this-layer-must-1-simulate-the-billing-flow-with-a-promise-based-api-matching-google-play-billing-s-interface-initbillingclient-launchbillingflow-acknowledgepurchase-querypurchases-2-on-successful-purchase-simulation-return-a-purchase-token-and-set-premium-status-3-on-failure-cancellation-reject-with-an-error-message-payment-cancelled-or-failed-4-querypurchases-must-check-localstorage-for-existing-purchases-to-support-restore-flow",
+      "featureTitle": "Implement a simulated Google Play Billing integration layer in a new utility file (frontend/src/utils/googlePlayBilling.ts). Since the app runs as a web SPA on ICP and cannot call native Android APIs, this layer must: (1) simulate the billing flow with a Promise-based API matching Google Play Billing's interface (initBillingClient, launchBillingFlow, acknowledgePurchase, queryPurchases), (2) on successful purchase simulation, return a purchase token and set premium status, (3) on failure/cancellation, reject with an error message 'Payment cancelled or failed.', (4) queryPurchases must check localStorage for existing purchases to support restore flow.",
       "files": [
-        "frontend/src/utils/backup.ts"
+        "frontend/src/utils/googlePlayBilling.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -42,11 +42,10 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-add-a-backup-restore-section-to-the-settings-page-frontend-src-pages-settings-tsx-positioned-as-a-clearly-labelled-card-the-section-must-display-a-heading-backup-restore-a-last-backup-line-showing-a-formatted-date-time-string-stored-in-localstorage-after-each-successful-backup-or-never-if-no-backup-has-been-made-a-backup-to-cloud-button-a-restore-from-backup-button-and-the-informational-text-your-backup-file-stays-in-your-personal-cloud-storage-studiora-does-not-store-your-data-on-external-servers-after-a-successful-backup-update-the-stored-timestamp-and-display-the-success-message-backup-successful-saved-to-your-cloud-storage-with-a-subtle-fade-in-checkmark-animation-lasting-1-5-s-the-section-must-maintain-the-existing-calm-and-minimal-visual-style-of-the-settings-page",
-      "featureTitle": "Add a 'Backup & Restore' section to the Settings page (`frontend/src/pages/Settings.tsx`) positioned as a clearly labelled card. The section must display: a ☁️ heading 'Backup & Restore', a 'Last Backup:' line showing a formatted date/time string stored in localStorage after each successful backup or 'Never' if no backup has been made, a 'Backup to Cloud' button, a 'Restore from Backup' button, and the informational text: 'Your backup file stays in your personal cloud storage. Studiora does not store your data on external servers.' After a successful backup update the stored timestamp and display the success message 'Backup Successful — Saved to your cloud storage.' with a subtle fade-in / checkmark animation lasting ~1.5 s. The section must maintain the existing calm and minimal visual style of the Settings page.",
+      "featureId": "feature-redesign-the-paywallscreen-component-frontend-src-components-paywallscreen-tsx-to-display-1-title-upgrade-to-studiora-premium-2-a-feature-list-showing-all-premium-benefits-with-icons-unlimited-study-plans-advanced-analytics-smart-study-insights-advanced-focus-modes-detailed-statistics-custom-themes-export-reports-3-two-plan-selection-cards-monthly-3-99-month-and-yearly-29-99-year-with-best-value-badge-softly-highlighted-4-a-primary-cta-button-continue-with-google-play-that-triggers-the-billing-flow-for-the-selected-plan-5-a-secondary-restore-purchases-button-6-on-successful-purchase-unlock-premium-close-the-paywall-and-display-a-toast-confirmation-message-premium-unlocked-stay-focused-7-on-failed-purchase-display-payment-cancelled-or-failed-inline-without-closing-the-modal",
+      "featureTitle": "Redesign the PaywallScreen component (frontend/src/components/PaywallScreen.tsx) to display: (1) title 'Upgrade to Studiora Premium', (2) a feature list showing all premium benefits with icons (Unlimited study plans, Advanced analytics, Smart study insights, Advanced focus modes, Detailed statistics, Custom themes, Export reports), (3) two plan selection cards — Monthly ($3.99/month) and Yearly ($29.99/year with 'Best Value' badge softly highlighted), (4) a primary CTA button 'Continue with Google Play' that triggers the billing flow for the selected plan, (5) a secondary 'Restore Purchases' button, (6) on successful purchase: unlock premium, close the paywall, and display a toast/confirmation message 'Premium unlocked. Stay focused.', (7) on failed purchase: display 'Payment cancelled or failed.' inline without closing the modal.",
       "files": [
-        "frontend/src/hooks/useBackupRestore.ts",
-        "frontend/src/pages/Settings.tsx"
+        "frontend/src/components/PaywallScreen.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -63,10 +62,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-gate-the-entire-backup-restore-section-behind-premium-status-using-the-existing-ispremium-check-from-frontend-src-utils-premiumcheck-ts-free-tier-users-must-see-the-section-heading-and-a-lock-indicator-with-an-upgrade-prompt-message-e-g-cloud-backup-is-a-premium-feature-upgrade-to-back-up-your-data-and-the-backup-to-cloud-restore-from-backup-buttons-must-be-disabled-or-replaced-by-an-upgradeprompt-component-premium-users-see-the-fully-functional-section-trial-users-should-also-have-access",
-      "featureTitle": "Gate the entire Backup & Restore section behind premium status using the existing `isPremium` check from `frontend/src/utils/premiumCheck.ts`. Free-tier users must see the section heading and a lock indicator (🔒) with an upgrade prompt message (e.g., 'Cloud Backup is a Premium feature. Upgrade to back up your data.') and the 'Backup to Cloud' / 'Restore from Backup' buttons must be disabled or replaced by an UpgradePrompt component. Premium users see the fully functional section. Trial users should also have access.",
+      "featureId": "feature-update-the-premiumgate-component-frontend-src-components-premiumgate-tsx-and-upgradeprompt-component-frontend-src-components-upgradeprompt-tsx-to-show-a-soft-non-blocking-upgrade-prompt-when-a-free-user-attempts-to-access-a-premium-feature-the-prompt-text-must-read-available-in-premium-to-enhance-your-study-experience-the-prompt-must-open-the-paywallscreen-and-must-never-block-navigation-away-from-the-current-page-or-prevent-use-of-free-features",
+      "featureTitle": "Update the PremiumGate component (frontend/src/components/PremiumGate.tsx) and UpgradePrompt component (frontend/src/components/UpgradePrompt.tsx) to show a soft, non-blocking upgrade prompt when a free user attempts to access a premium feature. The prompt text must read: 'Available in Premium to enhance your study experience.' The prompt must open the PaywallScreen and must never block navigation away from the current page or prevent use of free features.",
       "files": [
-        "frontend/src/pages/Settings.tsx"
+        "frontend/src/components/PremiumGate.tsx",
+        "frontend/src/components/UpgradePrompt.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -79,6 +79,52 @@
       ],
       "testIds": [
         "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-subscriptioncontext-frontend-src-contexts-subscriptioncontext-tsx-to-incorporate-the-google-play-billing-utility-and-expose-ispremium-currentplan-free-monthly-yearly-subscribetoplan-restorepurchases-and-cancelsubscription-on-app-initialization-automatically-call-querypurchases-to-restore-any-existing-premium-status-from-localstorage-mirroring-the-restore-on-reinstall-behavior",
+      "featureTitle": "Update the SubscriptionContext (frontend/src/contexts/SubscriptionContext.tsx) to incorporate the Google Play Billing utility and expose: isPremium, currentPlan ('free' | 'monthly' | 'yearly'), subscribeToPlan, restorePurchases, and cancelSubscription. On app initialization, automatically call queryPurchases to restore any existing premium status from localStorage, mirroring the 'restore on reinstall' behavior.",
+      "files": [
+        "frontend/src/contexts/SubscriptionContext.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-free-tier-feature-access-ensure-the-following-features-are-fully-accessible-without-premium-create-manage-study-plans-add-tasks-and-subjects-daily-study-schedule-basic-progress-tracking-basic-focus-timer-pomodoro-with-standard-intervals-local-device-storage-and-progress-summary-ensure-premium-gates-are-only-applied-to-advanced-analytics-advancedstatisticssection-ai-smart-insights-aiinsightspanel-smartstudyinsightscard-advanced-focus-settings-advancedfocussettings-custom-themes-beyond-the-first-3-themeselectorsection-and-export-study-reports",
+      "featureTitle": "Update free-tier feature access: ensure the following features are fully accessible without premium — create/manage study plans, add tasks and subjects, daily study schedule, basic progress tracking, basic focus timer (Pomodoro with standard intervals), local device storage, and progress summary. Ensure premium gates are only applied to: advanced analytics (AdvancedStatisticsSection), AI/smart insights (AIInsightsPanel, SmartStudyInsightsCard), advanced focus settings (AdvancedFocusSettings), custom themes beyond the first 3 (ThemeSelectorSection), and export study reports.",
+      "files": [
+        "frontend/src/components/AIInsightsPanel.tsx",
+        "frontend/src/components/AdvancedFocusSettings.tsx",
+        "frontend/src/components/AdvancedStatisticsSection.tsx",
+        "frontend/src/components/ThemeSelectorSection.tsx",
+        "frontend/src/pages/ExamSetup.tsx",
+        "frontend/src/pages/FocusMode.tsx",
+        "frontend/src/pages/ProgressTracking.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
       ],
       "confidence": "high"
     }

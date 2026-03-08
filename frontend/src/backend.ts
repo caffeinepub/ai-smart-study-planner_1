@@ -208,6 +208,10 @@ export interface backendInterface {
         completedTasks: bigint;
     }>;
     getLatestBackup(): Promise<BackupData | null>;
+    /**
+     * / Returns the premium status for the caller.
+     */
+    getPremiumStatus(): Promise<boolean>;
     getStudyStreak(examId: bigint): Promise<bigint>;
     getTodayGuestTasks(deviceId: string, examId: bigint): Promise<Array<DailyTask>>;
     getTodayTasks(examId: bigint): Promise<Array<DailyTask>>;
@@ -230,6 +234,10 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     startGuestTrial(deviceId: string): Promise<void>;
     startTrial(): Promise<void>;
+    /**
+     * / Stores the given premium status for the caller.
+     */
+    storePremiumStatus(isPremium: boolean): Promise<void>;
     submitExamSetup(setup: ExamSetup): Promise<bigint>;
     submitGuestExamSetup(deviceId: string, setup: ExamSetup): Promise<bigint>;
     upgradeGuestToPremium(deviceId: string): Promise<void>;
@@ -580,6 +588,20 @@ export class Backend implements backendInterface {
             return from_candid_opt_n20(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getPremiumStatus(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPremiumStatus();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPremiumStatus();
+            return result;
+        }
+    }
     async getStudyStreak(arg0: bigint): Promise<bigint> {
         if (this.processError) {
             try {
@@ -833,6 +855,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.startTrial();
+            return result;
+        }
+    }
+    async storePremiumStatus(arg0: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.storePremiumStatus(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.storePremiumStatus(arg0);
             return result;
         }
     }

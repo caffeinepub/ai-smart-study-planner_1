@@ -1,12 +1,15 @@
 # Specification
 
 ## Summary
-**Goal:** Add a Cloud Backup & Restore section to the Settings page, allowing premium users to export and import all their app data as a local JSON file.
+**Goal:** Implement Free/Premium monetization for Studiora using a simulated Google Play Billing layer, with two subscription tiers, a redesigned paywall, soft upgrade prompts, and backend premium status storage.
 
 **Planned changes:**
-- Create a `createBackup` utility that collects study plans, tasks, daily progress, streak, companion state, and settings into a `studiora_backup.json` file; use the Web Share API to open the device share sheet if available, otherwise fall back to a direct file download. No data is sent to any backend.
-- Create a `restoreBackup` utility that opens a file picker for `.json` files, validates the backup structure, shows a confirmation dialog ("Restoring will replace current data. Continue?"), writes all fields back to localStorage, and refreshes relevant React Query caches. Shows an error toast on invalid files.
-- Add a "Backup & Restore" section (☁️ heading) to the Settings page with: a "Last Backup" timestamp (or "Never"), a "Backup to Cloud" button, a "Restore from Backup" button, a privacy notice, and a ~1.5s success animation/message after backup completes.
-- Gate the section behind `isPremium`: free-tier users see a 🔒 lock indicator and an upgrade prompt (with disabled/replaced buttons); premium and trial users see the fully functional section. Clicking the upgrade prompt opens the PaywallScreen modal.
+- Create `frontend/src/utils/googlePlayBilling.ts` with a simulated Google Play Billing API (`initBillingClient`, `launchBillingFlow`, `acknowledgePurchase`, `queryPurchases`) using localStorage for purchase persistence
+- Update `useSubscription.ts` hook to define Free and Premium tiers with product IDs `studiora_monthly` ($3.99/month) and `studiora_yearly` ($29.99/year), exposing `isPremium`, `subscribeToPlan`, `restorePurchases`, and `cancelSubscription`
+- Update `SubscriptionContext.tsx` to integrate the billing utility, auto-restore purchases on mount, and expose the full subscription API to consumers
+- Redesign `PaywallScreen.tsx` to show "Upgrade to Studiora Premium" title, 7 premium feature benefits with icons, Monthly/Yearly plan selection cards (Yearly with "Best Value" badge), "Continue with Google Play" CTA, "Restore Purchases" button, success toast "Premium unlocked. Stay focused.", and inline failure message "Payment cancelled or failed."
+- Update `PremiumGate.tsx` and `UpgradePrompt.tsx` to show a soft, non-blocking prompt "Available in Premium to enhance your study experience." that opens the PaywallScreen
+- Gate only advanced analytics (`AdvancedStatisticsSection`), AI insights (`AIInsightsPanel`, `SmartStudyInsightsCard`), advanced focus settings (`AdvancedFocusSettings`), themes beyond the first 3 (`ThemeSelectorSection`), and export reports behind premium; all free-tier features remain fully accessible
+- Update `backend/main.mo` to add `storePremiumStatus(isPremium: Bool)` and `getPremiumStatus()` per-user functions, defaulting to false for new users
 
-**User-visible outcome:** Premium users can back up all their Studiora data to their personal cloud storage (Google Drive, iCloud, Dropbox, etc.) via the device share sheet, and restore it later using a file picker — all from a new "Backup & Restore" card in Settings. Free users see a locked upgrade prompt in its place.
+**User-visible outcome:** Free users can use all core features (study plans, tasks, schedule, basic timer, progress summary) without restriction. Premium features show a gentle upgrade prompt. Users can subscribe via a redesigned paywall with monthly or yearly Google Play billing options, and premium status is restored automatically on app launch.

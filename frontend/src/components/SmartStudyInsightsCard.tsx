@@ -186,9 +186,8 @@ export default function SmartStudyInsightsCard({ tasks, allTasks = [] }: SmartSt
           </div>
         </div>
 
-        {showPaywall && (
-          <PaywallScreen onClose={() => setShowPaywall(false)} featureName="Smart Study Insights" />
-        )}
+        {/* Fixed: use isOpen prop instead of featureName */}
+        <PaywallScreen isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
       </>
     );
   }

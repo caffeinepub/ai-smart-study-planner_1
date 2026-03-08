@@ -1,175 +1,104 @@
-import React, { useState } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { TrendingUp, Award, Target, Sparkles } from 'lucide-react';
+import React from 'react';
+import PremiumGate from './PremiumGate';
 import { useConsolidatedPremiumStatus } from '../utils/premiumCheck';
-import PaywallScreen from './PaywallScreen';
-import type { ProgressData } from '../backend';
 
-interface AdvancedStatisticsSectionProps {
-  progressData: ProgressData | undefined;
+interface WeeklyEntry {
+  dayLabel: string;
+  completedTasks: number;
+  totalTasks: number;
 }
 
-export default function AdvancedStatisticsSection({ progressData }: AdvancedStatisticsSectionProps) {
-  const { isPremium, isLoading: premiumLoading } = useConsolidatedPremiumStatus();
-  const [showPaywall, setShowPaywall] = useState(false);
+interface AdvancedStatisticsSectionProps {
+  weeklyEntries: WeeklyEntry[];
+  totalCompleted: number;
+  totalPending: number;
+}
 
-  if (premiumLoading) {
-    return (
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="p-4 flex items-center gap-3 border-b border-white/10 dark:border-white/6">
-          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">Advanced Statistics</h3>
-            <p className="text-xs text-muted-foreground">Detailed performance analytics</p>
-          </div>
-        </div>
-        <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground text-xs py-6">
-          <span className="w-3.5 h-3.5 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-          Loading…
-        </div>
-      </div>
-    );
-  }
-
-  if (!isPremium) {
-    return (
-      <>
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="p-4 flex items-center gap-3 border-b border-white/10 dark:border-white/6">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-foreground">Advanced Statistics</h3>
-              <p className="text-xs text-muted-foreground">Detailed performance analytics</p>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2 py-1 rounded-full">
-              <Sparkles className="w-3 h-3" />
-              Premium
-            </div>
-          </div>
-          <div className="p-4 space-y-3">
-            {/* Blurred preview */}
-            <div className="relative h-32 rounded-xl bg-muted/30 overflow-hidden">
-              <div className="absolute inset-0 backdrop-blur-[2px] bg-background/40 z-10 flex flex-col items-center justify-center gap-2">
-                <TrendingUp className="w-6 h-6 text-primary" />
-                <p className="text-xs font-semibold text-foreground">Detailed Charts & Analytics</p>
-              </div>
-              <div className="p-3 opacity-30">
-                <div className="flex items-end gap-1 h-20">
-                  {[40, 65, 30, 80, 55, 70, 90].map((h, i) => (
-                    <div key={i} className="flex-1 bg-primary rounded-t" style={{ height: `${h}%` }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowPaywall(true)}
-              className="w-full py-2.5 rounded-xl text-xs font-bold text-white active:scale-95 transition-all duration-150"
-              style={{ background: 'linear-gradient(135deg, oklch(0.51 0.22 264), oklch(0.62 0.22 290))' }}
-            >
-              Unlock Advanced Statistics
-            </button>
-          </div>
-        </div>
-
-        {showPaywall && (
-          <PaywallScreen onClose={() => setShowPaywall(false)} featureName="Advanced Statistics" />
-        )}
-      </>
-    );
-  }
-
-  if (!progressData) {
-    return (
-      <div className="glass-card rounded-2xl p-4 text-center text-sm text-muted-foreground">
-        No progress data available yet. Start completing tasks to see your statistics.
-      </div>
-    );
-  }
-
-  const chartData = progressData.weeklyEntries.map((entry) => ({
-    day: entry.dayLabel,
-    completed: Number(entry.completedTasks),
-    total: Number(entry.totalTasks),
-    rate: Number(entry.totalTasks) > 0
-      ? Math.round((Number(entry.completedTasks) / Number(entry.totalTasks)) * 100)
-      : 0,
-  }));
-
-  const totalCompleted = Number(progressData.totalCompleted);
-  const totalPending = Number(progressData.totalPending);
-  const totalTasks = totalCompleted + totalPending;
-  const overallRate = totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0;
-  const streak = Number(progressData.studyStreak);
+function AdvancedStatisticsContent({ weeklyEntries, totalCompleted, totalPending }: AdvancedStatisticsSectionProps) {
+  const maxTasks = Math.max(...weeklyEntries.map((e) => e.totalTasks), 1);
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden">
-      <div className="p-4 flex items-center gap-3 border-b border-white/10 dark:border-white/6">
-        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-          <TrendingUp className="w-4 h-4 text-primary" />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="glass-card p-4 rounded-xl text-center">
+          <p className="text-2xl font-bold text-primary">{totalCompleted}</p>
+          <p className="text-xs text-muted-foreground mt-1">Tasks Completed</p>
         </div>
-        <div className="flex-1">
-          <h3 className="text-sm font-bold text-foreground">Advanced Statistics</h3>
-          <p className="text-xs text-muted-foreground">Your performance breakdown</p>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded-full font-semibold">
-          <Sparkles className="w-3 h-3" />
-          Premium
+        <div className="glass-card p-4 rounded-xl text-center">
+          <p className="text-2xl font-bold text-foreground">{totalPending}</p>
+          <p className="text-xs text-muted-foreground mt-1">Tasks Pending</p>
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { icon: <Target className="w-3.5 h-3.5" />, label: 'Completion', value: `${overallRate}%`, color: 'text-primary' },
-            { icon: <Award className="w-3.5 h-3.5" />, label: 'Streak', value: `${streak}d`, color: 'text-amber-500' },
-            { icon: <TrendingUp className="w-3.5 h-3.5" />, label: 'Done', value: totalCompleted.toString(), color: 'text-emerald-500' },
-          ].map((stat, i) => (
-            <div key={i} className="p-3 rounded-xl bg-muted/30 border border-border text-center">
-              <div className={`flex justify-center mb-1 ${stat.color}`}>{stat.icon}</div>
-              <p className={`text-base font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Weekly completion rate chart */}
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground mb-2">Weekly Completion Rate</p>
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="opacity-10" />
-              <XAxis dataKey="day" tick={{ fontSize: 9 }} />
-              <YAxis tick={{ fontSize: 9 }} domain={[0, 100]} />
-              <Tooltip
-                formatter={(value: number) => [`${value}%`, 'Completion']}
-                contentStyle={{ fontSize: 11, borderRadius: 8 }}
-              />
-              <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.rate >= 80 ? '#10b981' : entry.rate >= 50 ? '#6366f1' : '#f59e0b'}
+      <div className="glass-card p-4 rounded-xl">
+        <p className="text-sm font-semibold text-foreground mb-3">Weekly Activity</p>
+        <div className="flex items-end gap-1.5 h-24">
+          {weeklyEntries.map((entry) => {
+            const height = entry.totalTasks > 0
+              ? Math.max((entry.completedTasks / maxTasks) * 100, 4)
+              : 4;
+            const completion = entry.totalTasks > 0
+              ? Math.round((entry.completedTasks / entry.totalTasks) * 100)
+              : 0;
+            return (
+              <div key={entry.dayLabel} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full flex flex-col justify-end" style={{ height: '80px' }}>
+                  <div
+                    className="w-full rounded-t-sm bg-primary/70 transition-all"
+                    style={{ height: `${height}%` }}
+                    title={`${entry.completedTasks}/${entry.totalTasks} (${completion}%)`}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                </div>
+                <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+                  {entry.dayLabel.replace('Day-', 'D-')}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="glass-card p-4 rounded-xl">
+        <p className="text-sm font-semibold text-foreground mb-3">Completion Rate</p>
+        <div className="space-y-2">
+          {weeklyEntries.slice(-3).map((entry) => {
+            const rate = entry.totalTasks > 0
+              ? Math.round((entry.completedTasks / entry.totalTasks) * 100)
+              : 0;
+            return (
+              <div key={entry.dayLabel} className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground w-16 shrink-0">{entry.dayLabel}</span>
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all"
+                    style={{ width: `${rate}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-foreground w-8 text-right">{rate}%</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdvancedStatisticsSection(props: AdvancedStatisticsSectionProps) {
+  const { isLoading } = useConsolidatedPremiumStatus();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-24 bg-muted/40 rounded-xl animate-pulse" />
+        <div className="h-32 bg-muted/40 rounded-xl animate-pulse" />
+      </div>
+    );
+  }
+
+  return (
+    <PremiumGate featureName="Advanced Statistics" showPreview>
+      <AdvancedStatisticsContent {...props} />
+    </PremiumGate>
   );
 }
